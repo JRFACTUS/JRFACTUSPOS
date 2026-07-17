@@ -29,6 +29,10 @@ export const obtenerPermisosPorModulo = async (modulo) => {
     console.error('Error al obtener permisos:', error.response?.data?.message || error.message);
     return {};
   }
+
+
+  
 };
+
 
 export default api;

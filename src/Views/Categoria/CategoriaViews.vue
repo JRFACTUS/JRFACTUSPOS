@@ -1,168 +1,236 @@
 <template>
   <div class="d-flex flex-column flex-lg-row min-vh-100 bg-light">
-    <Sidebar :class="{ 'd-none d-lg-flex': !sidebarOpen }" @close-sidebar="sidebarOpen = false" />
+    <Sidebar
+      :class="{ 'd-none d-lg-flex': !sidebarOpen }"
+      @close-sidebar="sidebarOpen = false"
+    />
 
     <div class="main-content">
       <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
       <main class="container-fluid p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-        
-        </div>
-
-        <!-- Spinner mientras se cargan datos o permisos -->
-        <div v-if="!permisos || loading" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-        </div>
-
-        <!-- Mensaje de error -->
-        <div v-if="error" class="alert alert-danger alert-dismissible fade show">
-          <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
-          <button type="button" class="btn-close" @click="error = null"></button>
-        </div>
-
-        <!-- Tabla de categorías -->
-       <div v-if="!loading && permisos?.listar" class="categoria-container">
-
-  <div class="categoria-header">
-    <div>
-      <h2>Gestión de Categorías</h2>
-      <p>Listado general de categorías registradas</p>
-    </div>
-
-    <button
-      v-if="permisos?.crear"
-      class="btn-nueva"
-      @click="openAddModal"
-    >
-      <i class="bi bi-plus-lg"></i>
-      Nueva Categoría
-    </button>
-  </div>
-
-  <div class="categoria-content">
-
-    <table
-      ref="tableRef"
-      class="categoria-table"
-    >
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Categoría</th>
-          <th>Fecha</th>
-          <th class="text-center">Acciones</th>
-        </tr>
-      </thead>
-
-      <tbody>
-
-        <tr
-          v-for="(categoria,index) in categorias"
-          :key="categoria.id"
+        <!-- CARGANDO -->
+        <div
+          v-if="!permisos || loading"
+          class="text-center py-5"
         >
-          <td>
-            <div class="categoria-id">
-              {{ index + 1 }}
-            </div>
-          </td>
+          <div
+            class="spinner-border text-primary"
+            role="status"
+          ></div>
+        </div>
 
-          <td>
+        <!-- ERROR -->
+        <div
+          v-if="error"
+          class="alert alert-danger alert-dismissible fade show"
+        >
+          <i class="bi bi-exclamation-triangle me-2"></i>
 
-            <div class="categoria-info">
+          {{ error }}
 
-             
+          <button
+            type="button"
+            class="btn-close"
+            @click="error = null"
+          ></button>
+        </div>
 
-              <div>
-                <div class="categoria-name">
-                  {{ categoria.nombre_categoria }}
-                </div>
-              </div>
+        <!-- CONTENIDO -->
+        <div
+          v-if="!loading && permisos?.listar"
+          class="categoria-container"
+        >
+          <div class="categoria-header">
+            <div>
+              <h2>Gestión de Categorías</h2>
 
-            </div>
-
-          </td>
-
-          <td>
-            {{ formatDate(categoria.updated_at) }}
-          </td>
-
-          <td>
-
-            <div class="acciones">
-
-              <button
-                v-if="permisos.actualizar"
-                class="btn-action btn-edit"
-                @click="openEditModal(categoria)"
-              >
-                <i class="bi bi-pencil"></i>
-              </button>
-
-              <button
-                v-if="permisos.eliminar"
-                class="btn-action btn-delete"
-                @click="deleteCategory(categoria.id)"
-              >
-                <i class="bi bi-trash"></i>
-              </button>
-
+              <p>
+                Listado general de categorías registradas
+              </p>
             </div>
 
-          </td>
+            <!-- PERMISO CREAR -->
+            <button
+              v-if="permisos.crear"
+              type="button"
+              class="btn-nueva"
+              @click="openAddModal"
+            >
+              <i class="bi bi-plus-lg"></i>
+              Nueva Categoría
+            </button>
+          </div>
 
-        </tr>
+          <div class="categoria-content">
+            <table
+              ref="tableRef"
+              class="categoria-table"
+            >
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Categoría</th>
+                  <th>Fecha</th>
 
-        <tr v-if="categorias.length === 0">
-          <td colspan="4">
+                  <!-- OCULTAR ACCIONES -->
+                  <th
+                    v-if="
+                      permisos.actualizar ||
+                      permisos.eliminar
+                    "
+                    class="text-center"
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
 
-            <div class="empty-state">
+              <tbody>
+                <tr
+                  v-for="(categoria, index) in categorias"
+                  :key="categoria.id"
+                >
+                  <td>
+                    <div class="categoria-id">
+                      {{ index + 1 }}
+                    </div>
+                  </td>
 
-              <i class="bi bi-folder-x"></i>
+                  <td>
+                    <div class="categoria-info">
+                      <div>
+                        <div class="categoria-name">
+                          {{ categoria.nombre_categoria }}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
 
-              <h5>No hay categorías</h5>
+                  <td>
+                    {{ formatDate(categoria.updated_at) }}
+                  </td>
 
-              <span>
-                No existen registros para mostrar.
-              </span>
+                  <!-- ACCIONES -->
+                  <td
+                    v-if="
+                      permisos.actualizar ||
+                      permisos.eliminar
+                    "
+                  >
+                    <div class="acciones">
+                      <!-- PERMISO ACTUALIZAR -->
+                      <button
+                        v-if="permisos.actualizar"
+                        type="button"
+                        class="btn-action btn-edit"
+                        @click="openEditModal(categoria)"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
 
-            </div>
+                      <!-- PERMISO ELIMINAR -->
+                      <button
+                        v-if="permisos.eliminar"
+                        type="button"
+                        class="btn-action btn-delete"
+                        @click="deleteCategory(categoria.id)"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
 
-          </td>
-        </tr>
+                <tr v-if="categorias.length === 0">
+                  <td
+                    :colspan="
+                      permisos.actualizar ||
+                      permisos.eliminar
+                        ? 4
+                        : 3
+                    "
+                  >
+                    <div class="empty-state">
+                      <i class="bi bi-folder-x"></i>
 
-      </tbody>
+                      <h5>No hay categorías</h5>
 
-    </table>
+                      <span>
+                        No existen registros para mostrar.
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-  </div>
-
-</div>
-
-        <!-- Mensaje si NO tiene permiso de listar -->
-        <div v-if="!loading && permisos && !permisos.listar" class="alert alert-warning text-center">
+        <!-- SIN PERMISO PARA LISTAR -->
+        <div
+          v-if="
+            !loading &&
+            permisos &&
+            !permisos.listar
+          "
+          class="alert alert-warning text-center"
+        >
           No tienes permiso para ver las categorías.
         </div>
       </main>
     </div>
 
-    <div v-if="sidebarOpen" class="sidebar-overlay d-lg-none" @click="sidebarOpen = false"></div>
+    <div
+      v-if="sidebarOpen"
+      class="sidebar-overlay d-lg-none"
+      @click="sidebarOpen = false"
+    ></div>
 
-    <!-- Modal Crear/Editar -->
-    <BaseModal v-model:visible="modalVisible" :title="modalTitle">
+    <!-- MODAL CREAR/EDITAR -->
+    <BaseModal
+      v-model:visible="modalVisible"
+      :title="modalTitle"
+    >
       <div class="mb-3">
-        <label class="form-label">Nombre de la categoría</label>
-        <input type="text" class="form-control" placeholder="Ingrese nombre" v-model="categoryName" />
+        <label class="form-label">
+          Nombre de la categoría
+        </label>
+
+        <input
+          v-model="categoryName"
+          type="text"
+          class="form-control"
+          placeholder="Ingrese nombre"
+        />
       </div>
+
       <template #footer>
-        <button class="btn btn-secondary" @click="modalVisible = false">Cancelar</button>
-        <button class="btn btn-primary" @click="saveCategory" v-if="permisos?.crear || permisos?.actualizar">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          @click="modalVisible = false"
+        >
+          Cancelar
+        </button>
+
+        <!-- PERMISO SEGÚN CREAR O EDITAR -->
+        <button
+          v-if="
+            editingId
+              ? permisos?.actualizar
+              : permisos?.crear
+          "
+          type="button"
+          class="btn btn-primary"
+          @click="saveCategory"
+        >
           {{ editingId ? 'Actualizar' : 'Guardar' }}
         </button>
       </template>
     </BaseModal>
 
-    <!-- Modal de Confirmación -->
+    <!-- CONFIRMACIÓN -->
     <ConfirmModal
       v-model:visible="confirmModalVisible"
       :message="confirmMessage"
@@ -172,8 +240,16 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from 'vue';
-import api, { obtenerPermisosPorModulo } from '@/services/api.js';
+import {
+  ref,
+  onMounted,
+  nextTick
+} from 'vue';
+
+import api, {
+  obtenerPermisosPorModulo
+} from '@/services/api.js';
+
 import Header from '@/components/HeaderVue.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import BaseModal from '@/components/BaseModal.vue';
@@ -183,7 +259,14 @@ import { useFormatters } from '@/composables/useFormatters.js';
 
 export default {
   name: 'CategoriaViews',
-  components: { Header, Sidebar, BaseModal, ConfirmModal },
+
+  components: {
+    Header,
+    Sidebar,
+    BaseModal,
+    ConfirmModal
+  },
+
   setup() {
     const sidebarOpen = ref(false);
     const categorias = ref([]);
@@ -193,102 +276,265 @@ export default {
     const modalVisible = ref(false);
     const modalTitle = ref('');
     const categoryName = ref('');
-    let editingId = null;
+    const editingId = ref(null);
 
     const confirmModalVisible = ref(false);
     const confirmMessage = ref('');
-    let deletingId = null;
+    const deletingId = ref(null);
 
-    const permisos = ref(null); // null = aún no cargado
+    /*
+     * null significa que aún no se cargaron los permisos.
+     */
+    const permisos = ref(null);
 
-    const { tableRef, initDataTable } = useDataTable(categorias);
-    const { formatDate } = useFormatters();
+    const {
+      tableRef,
+      initDataTable
+    } = useDataTable(categorias);
 
-    // 🔹 Cargar permisos del módulo Categoría
+    const {
+      formatDate
+    } = useFormatters();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Convertir permisos en booleanos
+    |--------------------------------------------------------------------------
+    */
+    const permisoActivo = (valor) => {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === '1' ||
+        valor === 'true'
+      );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar permisos de categoría
+    |--------------------------------------------------------------------------
+    */
     const fetchPermisos = async () => {
       try {
-        permisos.value = await obtenerPermisosPorModulo('categoria');
-      } catch {
-        permisos.value = {};
+        const respuesta =
+          await obtenerPermisosPorModulo('categoria');
+
+        permisos.value = {
+          listar: permisoActivo(respuesta?.listar),
+          crear: permisoActivo(respuesta?.crear),
+          actualizar: permisoActivo(
+            respuesta?.actualizar
+          ),
+          eliminar: permisoActivo(
+            respuesta?.eliminar
+          )
+        };
+      } catch (e) {
+        permisos.value = {
+          listar: false,
+          crear: false,
+          actualizar: false,
+          eliminar: false
+        };
+
+        error.value =
+          'No fue posible cargar los permisos de categorías.';
       }
     };
 
-    // 🔹 Cargar categorías
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar categorías
+    |--------------------------------------------------------------------------
+    */
     const fetchCategorias = async () => {
+      if (!permisos.value?.listar) {
+        return;
+      }
+
       loading.value = true;
       error.value = null;
+
       try {
         const res = await api.get('/getCategoria');
+
         categorias.value = res.data || [];
+
         if (categorias.value.length > 0) {
           await nextTick();
           initDataTable();
         }
       } catch (e) {
-        error.value = 'Error al cargar las categorías: ' + (e.response?.data?.message || e.message);
+        error.value =
+          'Error al cargar las categorías: ' +
+          (e.response?.data?.message || e.message);
       } finally {
         loading.value = false;
       }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Abrir modal para crear
+    |--------------------------------------------------------------------------
+    */
     const openAddModal = () => {
+      if (!permisos.value?.crear) {
+        error.value =
+          'No tienes permiso para crear categorías.';
+        return;
+      }
+
       modalTitle.value = 'Nueva Categoría';
       categoryName.value = '';
-      editingId = null;
+      editingId.value = null;
       modalVisible.value = true;
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Abrir modal para editar
+    |--------------------------------------------------------------------------
+    */
     const openEditModal = (categoria) => {
+      if (!permisos.value?.actualizar) {
+        error.value =
+          'No tienes permiso para actualizar categorías.';
+        return;
+      }
+
       modalTitle.value = 'Editar Categoría';
-      categoryName.value = categoria.nombre_categoria;
-      editingId = categoria.id;
+      categoryName.value =
+        categoria.nombre_categoria || '';
+
+      editingId.value = categoria.id;
       modalVisible.value = true;
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Guardar o actualizar categoría
+    |--------------------------------------------------------------------------
+    */
     const saveCategory = async () => {
-      if (!categoryName.value.trim()) return;
+      if (
+        editingId.value &&
+        !permisos.value?.actualizar
+      ) {
+        error.value =
+          'No tienes permiso para actualizar categorías.';
+        return;
+      }
+
+      if (
+        !editingId.value &&
+        !permisos.value?.crear
+      ) {
+        error.value =
+          'No tienes permiso para crear categorías.';
+        return;
+      }
+
+      const nombre = categoryName.value.trim();
+
+      if (!nombre) {
+        error.value =
+          'El nombre de la categoría es obligatorio.';
+        return;
+      }
+
       loading.value = true;
       error.value = null;
+
       try {
-        if (editingId) {
-          await api.put(`/categoria/${editingId}`, { nombre_categoria: categoryName.value.trim() });
+        if (editingId.value) {
+          await api.put(
+            `/categoria/${editingId.value}`,
+            {
+              nombre_categoria: nombre
+            }
+          );
         } else {
-          await api.post('/categoria', { nombre_categoria: categoryName.value.trim() });
+          await api.post('/categoria', {
+            nombre_categoria: nombre
+          });
         }
-        await fetchCategorias();
+
         modalVisible.value = false;
+        await fetchCategorias();
       } catch (e) {
-        error.value = 'Error al guardar la categoría: ' + (e.response?.data?.message || e.message);
+        error.value =
+          'Error al guardar la categoría: ' +
+          (e.response?.data?.message || e.message);
       } finally {
         loading.value = false;
       }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Solicitar eliminación
+    |--------------------------------------------------------------------------
+    */
     const deleteCategory = (id) => {
-      deletingId = id;
-      confirmMessage.value = '¿Seguro de eliminar esta categoría?';
+      if (!permisos.value?.eliminar) {
+        error.value =
+          'No tienes permiso para eliminar categorías.';
+        return;
+      }
+
+      deletingId.value = id;
+      confirmMessage.value =
+        '¿Seguro de eliminar esta categoría?';
+
       confirmModalVisible.value = true;
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Confirmar eliminación
+    |--------------------------------------------------------------------------
+    */
     const onConfirmDelete = async () => {
-      if (!deletingId) return;
+      if (
+        !permisos.value?.eliminar ||
+        !deletingId.value
+      ) {
+        confirmModalVisible.value = false;
+        return;
+      }
+
       loading.value = true;
       error.value = null;
+
       try {
-        await api.delete(`/categoria/${deletingId}`);
+        await api.delete(
+          `/categoria/${deletingId.value}`
+        );
+
         await fetchCategorias();
       } catch (e) {
-        error.value = 'Error al eliminar la categoría: ' + (e.response?.data?.message || e.message);
+        error.value =
+          'Error al eliminar la categoría: ' +
+          (e.response?.data?.message || e.message);
       } finally {
         loading.value = false;
-        deletingId = null;
+        deletingId.value = null;
+        confirmModalVisible.value = false;
       }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Inicialización
+    |--------------------------------------------------------------------------
+    */
     onMounted(async () => {
-      await fetchPermisos();  // primero permisos
+      await fetchPermisos();
+
       if (permisos.value?.listar) {
-        await fetchCategorias();  // luego categorías
+        await fetchCategorias();
       }
     });
 
@@ -310,9 +556,9 @@ export default {
       openEditModal,
       saveCategory,
       deleteCategory,
-      onConfirmDelete,
+      onConfirmDelete
     };
-  },
+  }
 };
 </script>
 

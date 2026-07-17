@@ -1,207 +1,311 @@
 <template>
   <div class="d-flex flex-column flex-lg-row min-vh-100 bg-light">
-    <!-- Sidebar -->
-    <Sidebar :class="{ 'd-none d-lg-flex': !sidebarOpen }" @close-sidebar="sidebarOpen = false" />
+    <Sidebar
+      :class="{ 'd-none d-lg-flex': !sidebarOpen }"
+      @close-sidebar="sidebarOpen = false"
+    />
 
-    <!-- Contenido principal -->
     <div class="main-content">
       <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
       <main class="container-fluid p-4">
+        <!-- CARGANDO -->
+        <div v-if="loading" class="text-center py-5">
+          <div
+            class="spinner-border text-primary"
+            role="status"
+          ></div>
+        </div>
 
-    <!-- Loader -->
-    <div v-if="loading" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
-    </div>
+        <!-- ERROR -->
+        <div
+          v-if="error"
+          class="alert alert-danger alert-dismissible fade show"
+        >
+          {{ error }}
 
-    <!-- Error -->
-    <div v-if="error" class="alert alert-danger alert-dismissible fade show">
-        {{ error }}
-        <button
+          <button
             type="button"
             class="btn-close"
             @click="error = null"
-        ></button>
-    </div>
+          ></button>
+        </div>
 
-    <div v-if="!loading" class="roles-container">
+        <!-- SIN PERMISO -->
+        <div
+          v-if="!loading && !permisosAcceso.listar"
+          class="alert alert-warning"
+        >
+          No tienes permiso para consultar roles.
+        </div>
 
-        <div class="roles-header">
-
+        <!-- CONTENIDO -->
+        <div
+          v-if="!loading && permisosAcceso.listar"
+          class="roles-container"
+        >
+          <div class="roles-header">
             <div>
-                <h2>Gestión de Roles y Permisos</h2>
-                <p>Listado general de roles registrados</p>
+              <h2>Gestión de Roles y Permisos</h2>
+
+              <p>
+                Listado general de roles registrados
+              </p>
             </div>
 
+            <!-- PERMISO CREAR -->
             <button
-                class="btn-nuevo"
-                @click="openAddModal"
+              v-if="permisosAcceso.crear"
+              type="button"
+              class="btn-nuevo"
+              @click="openAddModal"
             >
-                Nuevo Rol
+              Nuevo Rol
             </button>
+          </div>
 
-        </div>
-
-        <div class="roles-content">
-
+          <div class="roles-content">
             <div class="table-responsive">
+              <table
+                ref="tableRef"
+                class="roles-table"
+              >
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Nombre del Rol</th>
+                    <th>Descripción</th>
+                    <th>Usuario Asignado</th>
 
-                <table
-                    ref="tableRef"
-                    class="roles-table"
-                >
+                    <th
+                      v-if="
+                        permisosAcceso.actualizar ||
+                        permisosAcceso.eliminar
+                      "
+                    >
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
 
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Nombre del Rol</th>
-                            <th>Descripción</th>
-                            <th>Usuario Asignado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
+                <tbody>
+                  <tr
+                    v-for="(rol, index) in roles"
+                    :key="rol.id"
+                  >
+                    <td>{{ index + 1 }}</td>
+                    <td>{{ rol.nombre }}</td>
+                    <td>{{ rol.descripcion }}</td>
+                    <td>{{ rol.usuario?.name || '—' }}</td>
 
-                    <tbody>
+                    <td
+                      v-if="
+                        permisosAcceso.actualizar ||
+                        permisosAcceso.eliminar
+                      "
+                    >
+                      <!-- PERMISO ACTUALIZAR -->
+                      <button
+                        v-if="permisosAcceso.actualizar"
+                        type="button"
+                        class="btn btn-sm btn-warning me-2"
+                        @click="openEditModal(rol)"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
 
-                        <tr
-                            v-for="(rol,index) in roles"
-                            :key="rol.id"
-                        >
-                            <td>{{ index + 1 }}</td>
+                      <!-- PERMISO ELIMINAR -->
+                      <button
+                        v-if="permisosAcceso.eliminar"
+                        type="button"
+                        class="btn btn-sm btn-danger"
+                        @click="deleteRol(rol.id)"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
 
-                            <td>{{ rol.nombre }}</td>
-
-                            <td>{{ rol.descripcion }}</td>
-
-                            <td>{{ rol.usuario?.name || '—' }}</td>
-
-                            <td>
-
-                                <button
-                                    class="btn btn-sm btn-warning me-2"
-                                    @click="openEditModal(rol)"
-                                >
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-
-                                <button
-                                    class="btn btn-sm btn-danger"
-                                    @click="deleteRol(rol.id)"
-                                >
-                                    <i class="bi bi-trash"></i>
-                                </button>
-
-                            </td>
-                        </tr>
-
-                        <tr v-if="roles.length === 0">
-                            <td
-                                colspan="5"
-                                class="text-center text-muted py-5"
-                            >
-                                No hay roles registrados
-                            </td>
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
+                  <tr v-if="roles.length === 0">
+                    <td
+                      :colspan="
+                        permisosAcceso.actualizar ||
+                        permisosAcceso.eliminar
+                          ? 5
+                          : 4
+                      "
+                      class="text-center text-muted py-5"
+                    >
+                      No hay roles registrados
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-
+          </div>
         </div>
-
+      </main>
     </div>
 
-</main>
-    </div>
+    <div
+      v-if="sidebarOpen"
+      class="sidebar-overlay d-lg-none"
+      @click="sidebarOpen = false"
+    ></div>
 
-    <div v-if="sidebarOpen" class="sidebar-overlay d-lg-none" @click="sidebarOpen = false"></div>
-
-    <!-- 🔹 BaseModal -->
-    <BaseModal v-model:visible="modalVisible" :title="modalTitle" size="lg">
-      <form class="container-fluid" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
-        <!-- Nombre del Rol -->
+    <!-- MODAL CREAR/EDITAR -->
+    <BaseModal
+      v-model:visible="modalVisible"
+      :title="modalTitle"
+      size="lg"
+    >
+      <form
+        class="container-fluid"
+        style="
+          max-height: 65vh;
+          overflow-y: auto;
+          padding-right: 10px;
+        "
+        @submit.prevent="saveRol"
+      >
         <div class="row mb-2">
-          <label class="col-md-3 col-form-label fw-semibold">Nombre</label>
+          <label
+            class="col-md-3 col-form-label fw-semibold"
+          >
+            Nombre
+          </label>
+
           <div class="col-md-9">
-            <input type="text" class="form-control form-control-sm" placeholder="Ej. Administrador" v-model="rolNombre" />
+            <input
+              v-model="rolNombre"
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Ej. Administrador"
+            />
           </div>
         </div>
 
-        <!-- Descripción -->
         <div class="row mb-2">
-          <label class="col-md-3 col-form-label fw-semibold">Descripción</label>
+          <label
+            class="col-md-3 col-form-label fw-semibold"
+          >
+            Descripción
+          </label>
+
           <div class="col-md-9">
-            <textarea class="form-control form-control-sm" rows="2" placeholder="Descripción del rol" v-model="rolDescripcion"></textarea>
+            <textarea
+              v-model="rolDescripcion"
+              class="form-control form-control-sm"
+              rows="2"
+              placeholder="Descripción del rol"
+            ></textarea>
           </div>
         </div>
 
-        <!-- Asignar Usuario -->
         <div class="row mb-3">
-          <label class="col-md-3 col-form-label fw-semibold">Usuario</label>
+          <label
+            class="col-md-3 col-form-label fw-semibold"
+          >
+            Usuario
+          </label>
+
           <div class="col-md-9">
-            <select class="form-select form-select-sm" v-model="usuarioSeleccionado">
-              <option value="" disabled>Selecciona un usuario</option>
-              <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.name }}</option>
+            <select
+              v-model="usuarioSeleccionado"
+              class="form-select form-select-sm"
+            >
+              <option value="" disabled>
+                Selecciona un usuario
+              </option>
+
+              <option
+                v-for="usuario in usuarios"
+                :key="usuario.id"
+                :value="usuario.id"
+              >
+                {{ usuario.name }}
+              </option>
             </select>
           </div>
         </div>
 
-        <hr class="my-3">
+        <hr class="my-3" />
 
-        <!-- Permisos -->
-       <!-- Permisos -->
-<div class="permisos-section">
+        <!-- PERMISOS DEL ROL -->
+        <div class="permisos-section">
+          <div class="permisos-title">
+            <h5>Permisos por Módulo</h5>
 
-    <div class="permisos-title">
-        <h5>Permisos por Módulo</h5>
-        <p>Selecciona las acciones permitidas para este rol</p>
-    </div>
+            <p>
+              Selecciona las acciones permitidas para este rol
+            </p>
+          </div>
 
-    <div class="permisos-grid">
-
-        <div
-            v-for="permiso in permisos"
-            :key="permiso.id"
-            class="permiso-card"
-        >
-
-            <div class="permiso-header">
+          <div class="permisos-grid">
+            <div
+              v-for="permiso in permisos"
+              :key="permiso.id"
+              class="permiso-card"
+            >
+              <div class="permiso-header">
                 {{ permiso.nombre }}
-            </div>
+              </div>
 
-            <div class="permiso-checks">
-
+              <div class="permiso-checks">
                 <label
-                    v-for="accion in ['crear','listar','actualizar','eliminar']"
-                    :key="accion"
-                    class="permiso-check-item"
+                  v-for="accion in [
+                    'crear',
+                    'listar',
+                    'actualizar',
+                    'eliminar'
+                  ]"
+                  :key="accion"
+                  class="permiso-check-item"
                 >
-                    <input
-                        type="checkbox"
-                        :id="'permiso-' + permiso.id + '-' + accion"
-                        v-model="permiso[accion]"
-                    />
+                  <input
+                    v-model="permiso[accion]"
+                    type="checkbox"
+                    :id="
+                      'permiso-' +
+                      permiso.id +
+                      '-' +
+                      accion
+                    "
+                  />
 
-                    <span>
-                        {{ accion.charAt(0).toUpperCase() + accion.slice(1) }}
-                    </span>
+                  <span>
+                    {{
+                      accion.charAt(0).toUpperCase() +
+                      accion.slice(1)
+                    }}
+                  </span>
                 </label>
-
+              </div>
             </div>
-
+          </div>
         </div>
-
-    </div>
-
-</div>
       </form>
 
       <template #footer>
         <div class="d-flex justify-content-end gap-2">
-          <button class="btn btn-secondary" @click="modalVisible = false">Cancelar</button>
-          <button class="btn btn-primary" @click="saveRol">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            @click="modalVisible = false"
+          >
+            Cancelar
+          </button>
+
+          <button
+            v-if="
+              editingId
+                ? permisosAcceso.actualizar
+                : permisosAcceso.crear
+            "
+            type="button"
+            class="btn btn-primary"
+            @click="saveRol"
+          >
             {{ editingId ? 'Actualizar' : 'Guardar' }}
           </button>
         </div>
@@ -211,150 +315,354 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from "vue";
-import api from "@/services/api.js";
-import Header from "@/components/HeaderVue.vue";
-import Sidebar from "@/components/Sidebar.vue";
-import BaseModal from "@/components/BaseModal.vue";
-import { useDataTable } from "@/composables/useDataTable.js";
+import {
+  ref,
+  onMounted,
+  nextTick
+} from 'vue';
+
+import api, {
+  obtenerPermisosPorModulo
+} from '@/services/api.js';
+
+import Header from '@/components/HeaderVue.vue';
+import Sidebar from '@/components/Sidebar.vue';
+import BaseModal from '@/components/BaseModal.vue';
+import { useDataTable } from '@/composables/useDataTable.js';
 
 export default {
-  name: "RolesView",
-  components: { Header, Sidebar, BaseModal },
+  name: 'RolesView',
+
+  components: {
+    Header,
+    Sidebar,
+    BaseModal
+  },
 
   setup() {
     const sidebarOpen = ref(false);
     const roles = ref([]);
+
+    /*
+     * Lista de módulos que se asignan al rol.
+     */
     const permisos = ref([]);
+
+    /*
+     * Permisos del usuario conectado para el módulo roles.
+     */
+    const permisosAcceso = ref({
+      listar: false,
+      crear: false,
+      actualizar: false,
+      eliminar: false
+    });
+
     const usuarios = ref([]);
-
-    const rolNombre = ref("");
-    const rolDescripcion = ref("");
-    const usuarioSeleccionado = ref("");
-    const permisosSeleccionados = ref([]);
-
+    const rolNombre = ref('');
+    const rolDescripcion = ref('');
+    const usuarioSeleccionado = ref('');
     const modalVisible = ref(false);
-    const modalTitle = ref("");
+    const modalTitle = ref('');
     const editingId = ref(null);
     const loading = ref(false);
     const error = ref(null);
-    const { tableRef, initDataTable } = useDataTable(roles);
 
-    // 🔹 Cargar datos
-    const fetchData = async () => {
-      loading.value = true;
+    const {
+      tableRef,
+      initDataTable
+    } = useDataTable(roles);
+
+    const permisoActivo = (valor) => {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === '1' ||
+        valor === 'true'
+      );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permisos de acceso al módulo roles
+    |--------------------------------------------------------------------------
+    */
+    const fetchPermisosAcceso = async () => {
       try {
-        const [rolesRes, permisosRes, usuariosRes] = await Promise.all([
-          api.get("/roles"),
-          api.get("/getmodulos"),
-          api.get("/getuser"),
+        const respuesta =
+          await obtenerPermisosPorModulo('roles');
+
+        permisosAcceso.value = {
+          listar: permisoActivo(respuesta?.listar),
+          crear: permisoActivo(respuesta?.crear),
+          actualizar: permisoActivo(
+            respuesta?.actualizar
+          ),
+          eliminar: permisoActivo(
+            respuesta?.eliminar
+          )
+        };
+      } catch (e) {
+        permisosAcceso.value = {
+          listar: false,
+          crear: false,
+          actualizar: false,
+          eliminar: false
+        };
+
+        error.value =
+          'No fue posible cargar los permisos de roles.';
+      }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar roles, módulos y usuarios
+    |--------------------------------------------------------------------------
+    */
+    const fetchData = async () => {
+      if (!permisosAcceso.value.listar) {
+        return;
+      }
+
+      loading.value = true;
+      error.value = null;
+
+      try {
+        const [
+          rolesRes,
+          permisosRes,
+          usuariosRes
+        ] = await Promise.all([
+          api.get('/roles'),
+          api.get('/getmodulos'),
+          api.get('/getuser')
         ]);
+
         roles.value = rolesRes.data || [];
         permisos.value = permisosRes.data || [];
         usuarios.value = usuariosRes.data || [];
+
         await nextTick();
         initDataTable();
       } catch (e) {
-        error.value = "Error al cargar los datos: " + (e.response?.data?.message || e.message);
+        error.value =
+          'Error al cargar los datos: ' +
+          (e.response?.data?.message || e.message);
       } finally {
         loading.value = false;
       }
     };
 
-    onMounted(fetchData);
-
-    // 🔹 Abrir modal nuevo
+    /*
+    |--------------------------------------------------------------------------
+    | Abrir modal para crear
+    |--------------------------------------------------------------------------
+    */
     const openAddModal = () => {
-      modalTitle.value = "Nuevo Rol";
-      rolNombre.value = "";
-      rolDescripcion.value = "";
-      usuarioSeleccionado.value = "";
-      permisos.value.forEach(p => { p.crear=false; p.listar=false; p.actualizar=false; p.eliminar=false; });
+      if (!permisosAcceso.value.crear) {
+        error.value =
+          'No tienes permiso para crear roles.';
+        return;
+      }
+
+      modalTitle.value = 'Nuevo Rol';
+      rolNombre.value = '';
+      rolDescripcion.value = '';
+      usuarioSeleccionado.value = '';
+
+      permisos.value.forEach((permiso) => {
+        permiso.crear = false;
+        permiso.listar = false;
+        permiso.actualizar = false;
+        permiso.eliminar = false;
+      });
+
       editingId.value = null;
       modalVisible.value = true;
     };
 
-    // 🔹 Abrir modal editar
+    /*
+    |--------------------------------------------------------------------------
+    | Abrir modal para editar
+    |--------------------------------------------------------------------------
+    */
     const openEditModal = async (rol) => {
-      modalTitle.value = "Editar Rol";
+      if (!permisosAcceso.value.actualizar) {
+        error.value =
+          'No tienes permiso para actualizar roles.';
+        return;
+      }
+
+      modalTitle.value = 'Editar Rol';
       editingId.value = rol.id;
 
       try {
-        const response = await api.get(`/roles/${rol.id}`);
+        const response = await api.get(
+          `/roles/${rol.id}`
+        );
+
         const rolData = response.data[0];
 
         rolNombre.value = rolData.nombre;
-        rolDescripcion.value = rolData.descripcion;
-        usuarioSeleccionado.value = rolData.users.length > 0 ? rolData.users[0].id : "";
+        rolDescripcion.value =
+          rolData.descripcion || '';
 
-        permisos.value.forEach(mod => {
-          const permisoRol = rolData.permisos.find(p => p.modulo_id === mod.id);
-          mod.crear = permisoRol?.crear === 1;
-          mod.listar = permisoRol?.listar === 1;
-          mod.actualizar = permisoRol?.actualizar === 1;
-          mod.eliminar = permisoRol?.eliminar === 1;
+        usuarioSeleccionado.value =
+          rolData.users.length > 0
+            ? rolData.users[0].id
+            : '';
+
+        permisos.value.forEach((modulo) => {
+          const permisoRol =
+            rolData.permisos.find((permiso) => {
+              return permiso.modulo_id === modulo.id;
+            });
+
+          modulo.crear = permisoActivo(
+            permisoRol?.crear
+          );
+
+          modulo.listar = permisoActivo(
+            permisoRol?.listar
+          );
+
+          modulo.actualizar = permisoActivo(
+            permisoRol?.actualizar
+          );
+
+          modulo.eliminar = permisoActivo(
+            permisoRol?.eliminar
+          );
         });
 
         modalVisible.value = true;
       } catch (e) {
-        error.value = "Error al cargar el rol: " + (e.response?.data?.message || e.message);
+        error.value =
+          'Error al cargar el rol: ' +
+          (e.response?.data?.message || e.message);
       }
     };
 
-    // 🔹 Guardar o actualizar rol
+    /*
+    |--------------------------------------------------------------------------
+    | Guardar o actualizar rol
+    |--------------------------------------------------------------------------
+    */
     const saveRol = async () => {
-      if (!rolNombre.value) {
-        error.value = "El nombre del rol es obligatorio.";
+      if (
+        editingId.value &&
+        !permisosAcceso.value.actualizar
+      ) {
+        error.value =
+          'No tienes permiso para actualizar roles.';
+        return;
+      }
+
+      if (
+        !editingId.value &&
+        !permisosAcceso.value.crear
+      ) {
+        error.value =
+          'No tienes permiso para crear roles.';
+        return;
+      }
+
+      if (!rolNombre.value.trim()) {
+        error.value =
+          'El nombre del rol es obligatorio.';
         return;
       }
 
       const payload = {
-        nombre: rolNombre.value,
-        descripcion: rolDescripcion.value,
+        nombre: rolNombre.value.trim(),
+        descripcion: rolDescripcion.value.trim(),
         user_id: usuarioSeleccionado.value,
-        permisos: permisos.value.map(p => ({
-          modulo: p.nombre,
-          crear: p.crear ? 1 : 0,
-          listar: p.listar ? 1 : 0,
-          actualizar: p.actualizar ? 1 : 0,
-          eliminar: p.eliminar ? 1 : 0,
-        })),
+        permisos: permisos.value.map((permiso) => ({
+          modulo: permiso.nombre,
+          crear: permiso.crear ? 1 : 0,
+          listar: permiso.listar ? 1 : 0,
+          actualizar: permiso.actualizar ? 1 : 0,
+          eliminar: permiso.eliminar ? 1 : 0
+        }))
       };
 
       try {
         if (editingId.value) {
-          await api.put(`/roles/${editingId.value}`, payload);
+          await api.put(
+            `/roles/${editingId.value}`,
+            payload
+          );
         } else {
-          await api.post("/roles", payload);
+          await api.post('/roles', payload);
         }
+
         modalVisible.value = false;
         await fetchData();
       } catch (e) {
-        error.value = "Error al guardar el rol: " + (e.response?.data?.message || e.message);
+        error.value =
+          'Error al guardar el rol: ' +
+          (e.response?.data?.message || e.message);
       }
     };
 
-    // 🔹 Eliminar rol
+    /*
+    |--------------------------------------------------------------------------
+    | Eliminar rol
+    |--------------------------------------------------------------------------
+    */
     const deleteRol = async (id) => {
-      if (!confirm("¿Seguro que deseas eliminar este rol?")) return;
+      if (!permisosAcceso.value.eliminar) {
+        error.value =
+          'No tienes permiso para eliminar roles.';
+        return;
+      }
+
+      const confirmado = window.confirm(
+        '¿Seguro que deseas eliminar este rol?'
+      );
+
+      if (!confirmado) {
+        return;
+      }
+
       try {
         await api.delete(`/roles/${id}`);
         await fetchData();
       } catch (e) {
-        error.value = "Error al eliminar el rol: " + (e.response?.data?.message || e.message);
+        error.value =
+          'Error al eliminar el rol: ' +
+          (e.response?.data?.message || e.message);
       }
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Inicialización
+    |--------------------------------------------------------------------------
+    */
+    onMounted(async () => {
+      loading.value = true;
+
+      await fetchPermisosAcceso();
+
+      loading.value = false;
+
+      if (permisosAcceso.value.listar) {
+        await fetchData();
+      }
+    });
 
     return {
       sidebarOpen,
       roles,
       permisos,
+      permisosAcceso,
       usuarios,
       modalTitle,
       rolNombre,
       rolDescripcion,
       usuarioSeleccionado,
-      permisosSeleccionados,
       modalVisible,
       editingId,
       loading,
@@ -363,9 +671,9 @@ export default {
       openAddModal,
       openEditModal,
       saveRol,
-      deleteRol,
+      deleteRol
     };
-  },
+  }
 };
 </script>
 

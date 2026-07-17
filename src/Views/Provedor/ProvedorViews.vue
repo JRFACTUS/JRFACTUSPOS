@@ -116,12 +116,7 @@
 
     </div>
 
-    <div
-        v-if="!loading && !permisos.listar"
-        class="alert alert-warning text-center"
-    >
-        No tienes permiso para ver los proveedores.
-    </div>
+    
 
 </main>
     </div>

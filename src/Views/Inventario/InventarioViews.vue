@@ -1,25 +1,27 @@
 <template>
     <div class="d-flex flex-column flex-lg-row min-vh-100 bg-light">
-        <!-- Sidebar -->
-        <Sidebar :class="{ 'd-none d-lg-flex': !sidebarOpen }" @close-sidebar="sidebarOpen = false" />
+        <Sidebar
+            :class="{ 'd-none d-lg-flex': !sidebarOpen }"
+            @close-sidebar="sidebarOpen = false"
+        />
 
-        <!-- Contenido principal -->
         <div class="main-content">
             <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
             <main class="container-fluid p-4">
-
-                <!-- Loading -->
                 <div v-if="loading" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
+                    <div
+                        class="spinner-border text-primary"
+                        role="status"
+                    ></div>
                 </div>
 
-                <!-- Error -->
                 <div
                     v-if="error"
                     class="alert alert-danger alert-dismissible fade show"
                 >
                     <i class="bi bi-exclamation-triangle me-2"></i>
+
                     {{ error }}
 
                     <button
@@ -33,18 +35,17 @@
                     v-if="!loading"
                     class="ajuste-container"
                 >
-
-                    <!-- HEADER -->
                     <div class="ajuste-header">
                         <div>
                             <h2>Ajustes de Inventario</h2>
-                            <p>Control y corrección de existencias en inventario</p>
+
+                            <p>
+                                Control y corrección de existencias en inventario
+                            </p>
                         </div>
                     </div>
 
-                    <!-- FORMULARIO -->
                     <div class="ajuste-form">
-
                         <input
                             type="hidden"
                             v-model="codigoProducto"
@@ -56,7 +57,6 @@
                         />
 
                         <div class="row g-4 align-items-end">
-
                             <div class="col-lg-5">
                                 <label class="form-label">
                                     Buscar Producto (F10)
@@ -67,7 +67,7 @@
                                     class="form-control"
                                     placeholder="Nombre o código de barra"
                                     v-model="productoBusqueda"
-                                    @keyup.enter="buscarProducto"
+                                    @keyup.enter.prevent="buscarProducto"
                                     ref="productoInput"
                                 />
                             </div>
@@ -108,91 +108,144 @@
                                     class="form-control"
                                     v-model.number="stockFisico"
                                     min="0"
-                                    step="0.01"
-                                    @keyup.enter="agregarAjusteDirecto"
+                                    step="0.001"
+                                    @keyup.enter.prevent="agregarAjusteDirecto"
                                     ref="stockFisicoInput"
                                 />
                             </div>
-
                         </div>
 
-                        <!-- RESULTADO AUTOMÁTICO -->
                         <div
                             v-if="resultadoAjuste"
                             class="alert mt-4 mb-0"
                             :class="resultadoAjuste.clase"
                         >
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div
+                                class="d-flex align-items-center justify-content-between flex-wrap gap-2"
+                            >
                                 <div>
                                     <strong>
                                         {{ resultadoAjuste.texto }}
                                     </strong>
 
-                                    <span v-if="resultadoAjuste.tipo !== 'sin_ajuste'">
-                                        de {{ formatNumber(resultadoAjuste.cantidad) }} unidades
+                                    <span
+                                        v-if="
+                                            resultadoAjuste.tipo !==
+                                            'cuadrado'
+                                        "
+                                    >
+                                        de
+                                        {{
+                                            formatNumber(
+                                                resultadoAjuste.cantidad
+                                            )
+                                        }}
+                                        unidades
                                     </span>
                                 </div>
 
                                 <div class="small">
+                                    Movimiento:
+
+                                    <strong>
+                                        {{ resultadoAjuste.movimiento }}
+                                    </strong>
+
+                                    |
+
                                     Sistema:
-                                    <strong>{{ formatNumber(resultadoAjuste.stockSistema) }}</strong>
+
+                                    <strong>
+                                        {{
+                                            formatNumber(
+                                                resultadoAjuste.stockSistema
+                                            )
+                                        }}
+                                    </strong>
+
                                     |
+
                                     Físico:
-                                    <strong>{{ formatNumber(resultadoAjuste.stockFisico) }}</strong>
+
+                                    <strong>
+                                        {{
+                                            formatNumber(
+                                                resultadoAjuste.stockFisico
+                                            )
+                                        }}
+                                    </strong>
+
                                     |
+
                                     Diferencia registrada:
+
                                     <strong
                                         :class="{
-                                            'text-danger': resultadoAjuste.diferenciaRegistrada < 0,
-                                            'text-success': resultadoAjuste.diferenciaRegistrada > 0
+                                            'text-danger':
+                                                resultadoAjuste.diferenciaRegistrada <
+                                                0,
+                                            'text-success':
+                                                resultadoAjuste.diferenciaRegistrada >
+                                                0,
                                         }"
                                     >
-                                        {{ formatSignedNumber(resultadoAjuste.diferenciaRegistrada) }}
+                                        {{
+                                            formatSignedNumber(
+                                                resultadoAjuste.diferenciaRegistrada
+                                            )
+                                        }}
                                     </strong>
+
                                     |
+
                                     Diferencia actual:
+
                                     <strong class="text-primary">
-                                        {{ formatNumber(resultadoAjuste.diferenciaActual) }}
+                                        {{
+                                            formatNumber(
+                                                resultadoAjuste.diferenciaActual
+                                            )
+                                        }}
                                     </strong>
                                 </div>
                             </div>
                         </div>
 
                         <div class="row align-items-end mt-4">
-
                             <div class="col-lg-9">
-                                <label class="form-label">Observación</label>
+                                <label class="form-label">
+                                    Observación
+                                </label>
+
                                 <input
                                     type="text"
                                     class="form-control"
                                     v-model="razon"
-                                    placeholder="Ej: pérdida, sobrante, conteo físico..."
+                                    maxlength="500"
+                                    placeholder="Ingrese la observación general"
                                 />
                             </div>
-
-                           
-
                         </div>
                     </div>
 
-                    <!-- TABLA -->
                     <div class="ajuste-content">
-
                         <div class="d-flex justify-content-end mb-3">
                             <button
                                 class="btn-guardar"
                                 @click="guardarAjuste"
-                                :disabled="ajustes.length === 0 || loading"
+                                :disabled="
+                                    ajustesPendientes.length === 0 ||
+                                    loading
+                                "
                             >
                                 <i class="bi bi-check-circle me-2"></i>
+
                                 Guardar todos los ajustes
                             </button>
                         </div>
 
                         <div class="table-responsive">
-
                             <table class="ajuste-table">
-
                                 <thead>
                                     <tr>
                                         <th>#</th>
@@ -201,96 +254,222 @@
                                         <th>Stock Sistema</th>
                                         <th>Stock Físico</th>
                                         <th>Tipo Ajuste</th>
+                                        <th>Movimiento</th>
+                                        <th>Acción Kardex</th>
                                         <th>Diferencia Registrada</th>
-                                        
+                                        <th>Diferencia Actual</th>
+                                        <th>Faltante Registrado</th>
+                                        <th>Sobrante Registrado</th>
                                         <th>Cantidad Ajustada</th>
+                                        <th>Stock Nuevo</th>
+                                        <th>Estado</th>
+                                        <th>Mensaje</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
 
                                 <tbody>
-
                                     <tr
                                         v-for="(ajuste, index) in ajustes"
-                                        :key="ajuste.id"
+                                        :key="ajuste.uid"
                                     >
-                                        <td>{{ index + 1 }}</td>
+                                        <td>
+                                            {{ index + 1 }}
+                                        </td>
 
-                                        <td>{{ ajuste.codigo_producto }}</td>
+                                        <td>
+                                            {{ ajuste.codigo_producto }}
+                                        </td>
 
-                                        <td>{{ ajuste.nombre }}</td>
+                                        <td>
+                                            {{ ajuste.nombre }}
+                                        </td>
 
-                                        <td>{{ formatNumber(ajuste.stock_anterior) }}</td>
+                                        <td>
+                                            {{
+                                                formatNumber(
+                                                    ajuste.stock_sistema_anterior
+                                                )
+                                            }}
+                                        </td>
 
-                                        <td>{{ formatNumber(ajuste.stock_fisico) }}</td>
+                                        <td>
+                                            {{
+                                                formatNumber(
+                                                    ajuste.stock_fisico
+                                                )
+                                            }}
+                                        </td>
 
                                         <td>
                                             <span
-                                                :class="ajuste.tipo_ajuste === 'perdida'
-                                                    ? 'text-danger fw-bold'
-                                                    : 'text-success fw-bold'"
+                                                :class="
+                                                    claseTipoAjuste(
+                                                        ajuste.tipo_ajuste
+                                                    )
+                                                "
                                             >
-                                                {{ ajuste.tipo_ajuste === 'perdida' ? 'Pérdida' : 'Sobrante' }}
+                                                {{
+                                                    textoTipoAjuste(
+                                                        ajuste.tipo_ajuste
+                                                    )
+                                                }}
                                             </span>
                                         </td>
 
                                         <td>
-                                            <strong
-                                                :class="ajuste.diferencia_registrada < 0
-                                                    ? 'text-danger'
-                                                    : 'text-success'"
+                                            <span
+                                                :class="
+                                                    claseMovimiento(
+                                                        ajuste.movimiento
+                                                    )
+                                                "
                                             >
-                                                {{ formatSignedNumber(ajuste.diferencia_registrada) }}
+                                                {{
+                                                    textoMovimiento(
+                                                        ajuste.movimiento
+                                                    )
+                                                }}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            {{ ajuste.accion || "—" }}
+                                        </td>
+
+                                        <td>
+                                            <strong
+                                                :class="{
+                                                    'text-danger':
+                                                        Number(
+                                                            ajuste.diferencia_registrada
+                                                        ) < 0,
+                                                    'text-success':
+                                                        Number(
+                                                            ajuste.diferencia_registrada
+                                                        ) > 0,
+                                                }"
+                                            >
+                                                {{
+                                                    formatSignedNumber(
+                                                        ajuste.diferencia_registrada
+                                                    )
+                                                }}
                                             </strong>
                                         </td>
 
-                                        
-
                                         <td>
-                                            {{ formatNumber(ajuste.cantidad_ajustada) }}
+                                            <strong class="text-primary">
+                                                {{
+                                                    formatNumber(
+                                                        ajuste.diferencia_actual
+                                                    )
+                                                }}
+                                            </strong>
                                         </td>
 
                                         <td>
+                                            <span
+                                                :class="{
+                                                    'text-danger fw-bold':
+                                                        Number(
+                                                            ajuste.faltante_registrado
+                                                        ) > 0,
+                                                }"
+                                            >
+                                                {{
+                                                    formatNumber(
+                                                        ajuste.faltante_registrado
+                                                    )
+                                                }}
+                                            </span>
+                                        </td>
 
+                                        <td>
+                                            <span
+                                                :class="{
+                                                    'text-success fw-bold':
+                                                        Number(
+                                                            ajuste.sobrante_registrado
+                                                        ) > 0,
+                                                }"
+                                            >
+                                                {{
+                                                    formatNumber(
+                                                        ajuste.sobrante_registrado
+                                                    )
+                                                }}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            {{
+                                                formatNumber(
+                                                    ajuste.cantidad_ajustada
+                                                )
+                                            }}
+                                        </td>
+
+                                        <td>
+                                            {{
+                                                formatNumber(
+                                                    ajuste.stock_nuevo
+                                                )
+                                            }}
+                                        </td>
+
+                                        <td>
+                                            <span
+                                                :class="
+                                                    claseEstado(ajuste)
+                                                "
+                                            >
+                                                {{ textoEstado(ajuste) }}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            {{ ajuste.mensaje || "—" }}
+                                        </td>
+
+                                        <td>
                                             <button
                                                 class="btn-editar"
+                                                :disabled="ajuste.procesado"
                                                 @click="editarAjuste(ajuste)"
+                                                :title="
+                                                    ajuste.procesado
+                                                        ? 'Este ajuste ya fue guardado'
+                                                        : 'Editar ajuste'
+                                                "
                                             >
                                                 <i class="bi bi-pencil"></i>
                                             </button>
 
                                             <button
                                                 class="btn-eliminar"
+                                                :disabled="ajuste.procesado"
                                                 @click="eliminarAjuste(index)"
+                                                title="Eliminar de la tabla"
                                             >
                                                 <i class="bi bi-trash"></i>
                                             </button>
-
                                         </td>
-
                                     </tr>
 
                                     <tr v-if="ajustes.length === 0">
-
                                         <td
-                                            colspan="10"
+                                            colspan="17"
                                             class="text-center text-muted py-5"
                                         >
                                             No hay ajustes registrados
                                         </td>
-
                                     </tr>
-
                                 </tbody>
-
                             </table>
-
                         </div>
-
                     </div>
-
                 </div>
-
             </main>
         </div>
 
@@ -303,7 +482,14 @@
 </template>
 
 <script>
-import { ref, nextTick, onMounted, watch, computed } from "vue";
+import {
+    ref,
+    nextTick,
+    onMounted,
+    watch,
+    computed,
+} from "vue";
+
 import api from "@/services/api.js";
 import Header from "@/components/HeaderVue.vue";
 import Sidebar from "@/components/Sidebar.vue";
@@ -311,7 +497,11 @@ import router from "@/router";
 
 export default {
     name: "InventarioViews",
-    components: { Header, Sidebar },
+
+    components: {
+        Header,
+        Sidebar,
+    },
 
     setup() {
         const sidebarOpen = ref(false);
@@ -320,7 +510,6 @@ export default {
         const error = ref(null);
         const usuario = ref(null);
 
-        // Formulario
         const codigoProducto = ref("");
         const productoId = ref(null);
         const productoBusqueda = ref("");
@@ -331,52 +520,66 @@ export default {
         const productoInput = ref(null);
         const stockFisicoInput = ref(null);
 
+        const ajustesPendientes = computed(() => {
+            return ajustes.value.filter(
+                (ajuste) => !ajuste.procesado
+            );
+        });
+
         const formatNumber = (value) => {
-            return Number(value || 0).toFixed(2);
+            const numero = Number(value ?? 0);
+
+            if (Number.isNaN(numero)) {
+                return "0.000";
+            }
+
+            return numero.toFixed(3);
         };
 
         const formatSignedNumber = (value) => {
-            const numero = Number(value || 0);
+            const numero = Number(value ?? 0);
 
-            if (numero > 0) {
-                return `+${numero.toFixed(2)}`;
+            if (Number.isNaN(numero)) {
+                return "0.000";
             }
 
-            return numero.toFixed(2);
+            if (numero > 0) {
+                return `+${numero.toFixed(3)}`;
+            }
+
+            return numero.toFixed(3);
         };
 
-        /*
-        |--------------------------------------------------------------------------
-        | Resultado automático del ajuste
-        |--------------------------------------------------------------------------
-        | diferencia_registrada:
-        | físico - sistema
-        |
-        | Si es negativa = pérdida
-        | Si es positiva = sobrante
-        |
-        | diferencia_actual:
-        | antes de guardar la mostramos en 0 porque después del ajuste
-        | el sistema quedará igual al físico.
-        */
         const resultadoAjuste = computed(() => {
             if (!productoId.value) {
                 return null;
             }
 
-            const stockSistema = Number(cantidadActual.value || 0);
-            const stockContado = Number(stockFisico.value || 0);
+            const stockSistema = Number(
+                cantidadActual.value ?? 0
+            );
 
-            const diferenciaRegistrada = stockContado - stockSistema;
+            const stockContado = Number(
+                stockFisico.value ?? 0
+            );
+
+            const diferenciaRegistrada = Number(
+                (stockContado - stockSistema).toFixed(3)
+            );
+
             const diferenciaActual = 0;
 
-            if (Math.abs(diferenciaRegistrada) <= 0.0001) {
+            if (
+                Math.abs(diferenciaRegistrada) <=
+                0.0001
+            ) {
                 return {
-                    tipo: "sin_ajuste",
-                    texto: "Sin ajuste",
+                    tipo: "cuadrado",
+                    texto: "Inventario cuadrado",
+                    movimiento: "Sin movimiento",
                     cantidad: 0,
                     diferenciaRegistrada: 0,
-                    diferenciaActual: 0,
+                    diferenciaActual,
                     stockSistema,
                     stockFisico: stockContado,
                     clase: "alert-secondary",
@@ -385,9 +588,11 @@ export default {
 
             if (diferenciaRegistrada < 0) {
                 return {
-                    tipo: "perdida",
-                    texto: "Pérdida",
-                    cantidad: Math.abs(diferenciaRegistrada),
+                    tipo: "faltante",
+                    texto: "Faltante",
+                    movimiento: "Salida",
+                    cantidad:
+                        Math.abs(diferenciaRegistrada),
                     diferenciaRegistrada,
                     diferenciaActual,
                     stockSistema,
@@ -399,6 +604,7 @@ export default {
             return {
                 tipo: "sobrante",
                 texto: "Sobrante",
+                movimiento: "Entrada",
                 cantidad: diferenciaRegistrada,
                 diferenciaRegistrada,
                 diferenciaActual,
@@ -408,17 +614,128 @@ export default {
             };
         });
 
-        // Verificar sesión
-        const checkSesion = () => {
-            const token = localStorage.getItem("token");
-            const userJson = localStorage.getItem("user");
+        const textoTipoAjuste = (tipo) => {
+            if (tipo === "faltante") {
+                return "Faltante";
+            }
 
-            if (token && userJson) {
-                usuario.value = JSON.parse(userJson);
-            } else {
+            if (tipo === "sobrante") {
+                return "Sobrante";
+            }
+
+            if (tipo === "cuadrado") {
+                return "Cuadrado";
+            }
+
+            return "Pendiente";
+        };
+
+        const claseTipoAjuste = (tipo) => {
+            if (tipo === "faltante") {
+                return "text-danger fw-bold";
+            }
+
+            if (tipo === "sobrante") {
+                return "text-success fw-bold";
+            }
+
+            if (tipo === "cuadrado") {
+                return "text-primary fw-bold";
+            }
+
+            return "text-muted fw-bold";
+        };
+
+        const textoMovimiento = (movimiento) => {
+            if (movimiento === "salida") {
+                return "Salida";
+            }
+
+            if (movimiento === "entrada") {
+                return "Entrada";
+            }
+
+            return "Sin movimiento";
+        };
+
+        const claseMovimiento = (movimiento) => {
+            if (movimiento === "salida") {
+                return "text-danger fw-bold";
+            }
+
+            if (movimiento === "entrada") {
+                return "text-success fw-bold";
+            }
+
+            return "text-muted fw-bold";
+        };
+
+        const textoEstado = (ajuste) => {
+            if (!ajuste.procesado) {
+                return "Pendiente";
+            }
+
+            if (ajuste.ajuste_realizado === false) {
+                return "Cuadrado";
+            }
+
+            return "Guardado";
+        };
+
+        const claseEstado = (ajuste) => {
+            if (!ajuste.procesado) {
+                return "text-warning fw-bold";
+            }
+
+            if (ajuste.ajuste_realizado === false) {
+                return "text-primary fw-bold";
+            }
+
+            return "text-success fw-bold";
+        };
+
+        const checkSesion = () => {
+            const token =
+                localStorage.getItem("token");
+
+            const userJson =
+                localStorage.getItem("user");
+
+            if (!token || !userJson) {
                 usuario.value = null;
                 router.push("/login");
+
+                return;
             }
+
+            try {
+                usuario.value =
+                    JSON.parse(userJson);
+            } catch (err) {
+                console.error(
+                    "Error al obtener el usuario:",
+                    err
+                );
+
+                usuario.value = null;
+
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+
+                router.push("/login");
+            }
+        };
+
+        const limpiarProducto = () => {
+            productoBusqueda.value = "";
+            codigoProducto.value = "";
+            productoId.value = null;
+            cantidadActual.value = 0;
+            stockFisico.value = 0;
+
+            nextTick(() => {
+                productoInput.value?.focus();
+            });
         };
 
         const limpiarFormulario = () => {
@@ -429,228 +746,924 @@ export default {
             stockFisico.value = 0;
             razon.value = "";
 
+            localStorage.removeItem(
+                "observacionAjusteInventario"
+            );
+
             nextTick(() => {
-                if (productoInput.value) {
-                    productoInput.value.focus();
-                }
+                productoInput.value?.focus();
             });
         };
 
         const buscarProducto = async () => {
-            if (!productoBusqueda.value) return;
+            const busqueda =
+                productoBusqueda.value.trim();
+
+            if (!busqueda) {
+                error.value =
+                    "Ingrese el nombre o código del producto.";
+
+                return;
+            }
 
             try {
-                const termino = encodeURIComponent(productoBusqueda.value);
+                const termino =
+                    encodeURIComponent(busqueda);
 
-                const res = await api.get(`/productos/buscar?codigo_producto=${termino}`);
+                const res = await api.get(
+                    `/productos/buscar?codigo_producto=${termino}`
+                );
 
-                if (res.data && res.data.length > 0) {
-                    const producto = res.data[0];
+                let producto = null;
 
-                    codigoProducto.value = producto.codigo_producto;
-                    productoId.value = producto.id;
-                    productoBusqueda.value = producto.nombre;
+                if (
+                    Array.isArray(res.data) &&
+                    res.data.length > 0
+                ) {
+                    producto = res.data[0];
+                } else if (
+                    Array.isArray(res.data?.data) &&
+                    res.data.data.length > 0
+                ) {
+                    producto = res.data.data[0];
+                } else if (
+                    res.data &&
+                    typeof res.data === "object" &&
+                    res.data.id
+                ) {
+                    producto = res.data;
+                }
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Stock sistema actual
-                    |--------------------------------------------------------------------------
-                    | Primero intenta usar inventario.stock_actual.
-                    | Si tu endpoint no lo manda, usa producto.stock.
-                    */
-                    const stockSistema = Number(
-                        producto.inventario?.stock_actual ??
+                if (!producto) {
+                    limpiarProducto();
+
+                    error.value =
+                        "No se encontró el producto.";
+
+                    return;
+                }
+
+                codigoProducto.value =
+                    producto.codigo_producto;
+
+                productoId.value =
+                    producto.id;
+
+                productoBusqueda.value =
+                    producto.nombre;
+
+                const stockSistema = Number(
+                    producto.inventario?.stock_actual ??
                         producto.stock_actual ??
                         producto.stock ??
                         0
-                    );
+                );
 
-                    cantidadActual.value = stockSistema;
+                cantidadActual.value = Number(
+                    stockSistema.toFixed(3)
+                );
 
-                    // El físico inicia igual al sistema.
-                    stockFisico.value = stockSistema;
+                stockFisico.value = Number(
+                    stockSistema.toFixed(3)
+                );
 
-                    error.value = null;
-                } else {
-                    limpiarFormulario();
-                    error.value = "No se encontró el producto.";
-                }
+                error.value = null;
 
                 nextTick(() => {
                     if (stockFisicoInput.value) {
                         stockFisicoInput.value.focus();
+                        stockFisicoInput.value.select();
                     }
                 });
-
             } catch (err) {
-                limpiarFormulario();
-                error.value = "Error al buscar el producto.";
-                console.error("Error al buscar el producto:", err);
+                limpiarProducto();
+
+                error.value =
+                    err.response?.data?.message ||
+                    "Error al buscar el producto.";
+
+                console.error(
+                    "Error al buscar el producto:",
+                    err
+                );
             }
         };
 
-        // Guardar ajustes en localStorage
-        watch(ajustes, (newVal) => {
-            localStorage.setItem("ajustesInventario", JSON.stringify(newVal));
-        }, { deep: true });
+        watch(
+            ajustes,
+            (nuevosAjustes) => {
+                if (nuevosAjustes.length === 0) {
+                    localStorage.removeItem(
+                        "ajustesInventario"
+                    );
+
+                    return;
+                }
+
+                localStorage.setItem(
+                    "ajustesInventario",
+                    JSON.stringify(nuevosAjustes)
+                );
+            },
+            {
+                deep: true,
+            }
+        );
+
+        watch(razon, (nuevaObservacion) => {
+            const observacion = String(
+                nuevaObservacion ?? ""
+            ).trim();
+
+            if (!observacion) {
+                localStorage.removeItem(
+                    "observacionAjusteInventario"
+                );
+
+                return;
+            }
+
+            localStorage.setItem(
+                "observacionAjusteInventario",
+                nuevaObservacion
+            );
+        });
 
         const agregarAjusteDirecto = () => {
-            if (!productoId.value || !productoBusqueda.value || !usuario.value) {
-                error.value = "Primero busca un producto válido.";
+            if (
+                !productoId.value ||
+                !productoBusqueda.value ||
+                !usuario.value
+            ) {
+                error.value =
+                    "Primero busca un producto válido.";
+
                 return;
             }
 
             if (
                 stockFisico.value === null ||
                 stockFisico.value === "" ||
+                Number.isNaN(
+                    Number(stockFisico.value)
+                ) ||
                 Number(stockFisico.value) < 0
             ) {
-                error.value = "Ingrese el stock físico contado.";
+                error.value =
+                    "Ingrese un stock físico válido.";
+
                 return;
             }
 
-            const stockSistema = Number(cantidadActual.value || 0);
-            const stockContado = Number(stockFisico.value || 0);
+            const stockSistema = Number(
+                Number(
+                    cantidadActual.value ?? 0
+                ).toFixed(3)
+            );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Diferencia registrada
-            |--------------------------------------------------------------------------
-            | físico - sistema
-            |
-            | Sistema 100, físico 90  = -10 pérdida
-            | Sistema 100, físico 120 = +20 sobrante
-            */
-            const diferenciaRegistrada = stockContado - stockSistema;
+            const stockContado = Number(
+                Number(
+                    stockFisico.value ?? 0
+                ).toFixed(3)
+            );
 
-            if (Math.abs(diferenciaRegistrada) <= 0.0001) {
-                error.value = "No hay diferencia entre el stock del sistema y el stock físico.";
-                return;
+            let diferenciaRegistrada = Number(
+                (
+                    stockContado -
+                    stockSistema
+                ).toFixed(3)
+            );
+
+            const esCuadrado =
+                Math.abs(diferenciaRegistrada) <=
+                0.0001;
+
+            if (esCuadrado) {
+                diferenciaRegistrada = 0;
             }
 
-            const tipoAjuste = diferenciaRegistrada > 0 ? "sobrante" : "perdida";
-            const cantidadAjuste = Math.abs(diferenciaRegistrada);
+            const tipoAjuste = esCuadrado
+                ? "cuadrado"
+                : diferenciaRegistrada > 0
+                    ? "sobrante"
+                    : "faltante";
 
-            /*
-            |--------------------------------------------------------------------------
-            | Después del ajuste debe quedar en 0
-            |--------------------------------------------------------------------------
-            */
-            const diferenciaActual = 0;
+            const movimiento = esCuadrado
+                ? null
+                : diferenciaRegistrada > 0
+                    ? "entrada"
+                    : "salida";
+
+            const cantidadAjustada = esCuadrado
+                ? 0
+                : Number(
+                    Math.abs(
+                        diferenciaRegistrada
+                    ).toFixed(3)
+                );
+
+            const faltanteRegistrado =
+                tipoAjuste === "faltante"
+                    ? cantidadAjustada
+                    : 0;
+
+            const sobranteRegistrado =
+                tipoAjuste === "sobrante"
+                    ? cantidadAjustada
+                    : 0;
 
             const nuevoAjuste = {
-                id: productoId.value,
-                nombre: productoBusqueda.value,
-                codigo_producto: codigoProducto.value,
+                uid:
+                    `${productoId.value}-${Date.now()}`,
 
-                stock_anterior: stockSistema,
-                stock_fisico: stockContado,
+                producto_id:
+                    Number(productoId.value),
 
-                tipo_ajuste: tipoAjuste,
+                codigo_producto:
+                    codigoProducto.value,
 
-                diferencia_registrada: diferenciaRegistrada,
-              
+                nombre:
+                    productoBusqueda.value,
 
-                perdida_registrada: tipoAjuste === "perdida" ? -cantidadAjuste : 0,
-                sobrante_registrado: tipoAjuste === "sobrante" ? cantidadAjuste : 0,
+                ajuste_realizado:
+                    null,
 
-                cantidad_ajustada: cantidadAjuste,
+                tipo_ajuste:
+                    tipoAjuste,
 
-                razon: razon.value || "Ajuste de inventario",
-                fecha: new Date().toLocaleString(),
-                usuario: usuario.value.name,
+                movimiento,
+
+                /*
+                | La acción real será devuelta
+                | por el backend al guardar.
+                */
+                accion:
+                    null,
+
+                stock_sistema_anterior:
+                    stockSistema,
+
+                stock_fisico:
+                    stockContado,
+
+                stock_nuevo:
+                    stockContado,
+
+                diferencia_registrada:
+                    diferenciaRegistrada,
+
+                diferencia_actual:
+                    0,
+
+                cantidad_ajustada:
+                    cantidadAjustada,
+
+                faltante_registrado:
+                    faltanteRegistrado,
+
+                sobrante_registrado:
+                    sobranteRegistrado,
+
+                usuario:
+                    usuario.value.name,
+
+                fecha:
+                    new Date().toLocaleString(),
+
+                mensaje:
+                    null,
+
+                procesado:
+                    false,
             };
 
-            const index = ajustes.value.findIndex(ajuste => ajuste.id === productoId.value);
+            const indexPendiente =
+                ajustes.value.findIndex(
+                    (ajuste) =>
+                        Number(ajuste.producto_id) ===
+                            Number(productoId.value) &&
+                        !ajuste.procesado
+                );
 
-            if (index !== -1) {
-                ajustes.value[index] = nuevoAjuste;
+            if (indexPendiente !== -1) {
+                nuevoAjuste.uid =
+                    ajustes.value[
+                        indexPendiente
+                    ].uid;
+
+                ajustes.value[indexPendiente] =
+                    nuevoAjuste;
             } else {
-                ajustes.value.push(nuevoAjuste);
+                ajustes.value.push(
+                    nuevoAjuste
+                );
             }
 
-            limpiarFormulario();
+            limpiarProducto();
+
             error.value = null;
         };
 
-        const guardarAjuste = async () => {
-            if (ajustes.value.length === 0 || !usuario.value) {
-                error.value = "No hay ajustes para guardar o no hay usuario.";
+        const descargarPdfBase64 = (
+            pdfBase64,
+            nombreArchivo
+        ) => {
+            if (!pdfBase64) {
+                throw new Error(
+                    "El backend no devolvió el contenido del PDF."
+                );
+            }
+
+            const base64Limpio = String(
+                pdfBase64
+            ).replace(
+                /^data:application\/pdf;base64,/,
+                ""
+            );
+
+            const contenidoBinario =
+                atob(base64Limpio);
+
+            const bytes = new Uint8Array(
+                contenidoBinario.length
+            );
+
+            for (
+                let i = 0;
+                i < contenidoBinario.length;
+                i++
+            ) {
+                bytes[i] =
+                    contenidoBinario.charCodeAt(i);
+            }
+
+            const blob = new Blob(
+                [bytes],
+                {
+                    type: "application/pdf",
+                }
+            );
+
+            const urlPdf =
+                URL.createObjectURL(blob);
+
+            const enlace =
+                document.createElement("a");
+
+            enlace.href = urlPdf;
+
+            enlace.download =
+                nombreArchivo;
+
+            document.body.appendChild(
+                enlace
+            );
+
+            enlace.click();
+            enlace.remove();
+
+            setTimeout(() => {
+                URL.revokeObjectURL(
+                    urlPdf
+                );
+            }, 5000);
+        };
+
+        const actualizarAjusteDesdeRespuesta = (
+            ajustePendiente,
+            response
+        ) => {
+            const index =
+                ajustes.value.findIndex(
+                    (ajuste) =>
+                        ajuste.uid ===
+                        ajustePendiente.uid
+                );
+
+            if (index === -1) {
                 return;
             }
 
-            try {
-                const confirmar = confirm(
-                    "¿Está seguro que desea realizar el ajuste de inventario?"
+            ajustes.value[index] = {
+                ...ajustes.value[index],
+
+                ajuste_realizado:
+                    response.data
+                        ?.ajuste_realizado ??
+                    null,
+
+                tipo_ajuste:
+                    response.data
+                        ?.tipo_ajuste ??
+                    ajustes.value[index]
+                        .tipo_ajuste,
+
+                movimiento:
+                    response.data
+                        ?.movimiento ??
+                    null,
+
+                accion:
+                    response.data
+                        ?.accion ??
+                    null,
+
+                stock_sistema_anterior:
+                    Number(
+                        response.data
+                            ?.stock_sistema_anterior ??
+                        ajustes.value[index]
+                            .stock_sistema_anterior
+                    ),
+
+                stock_fisico:
+                    Number(
+                        response.data
+                            ?.stock_fisico ??
+                        ajustes.value[index]
+                            .stock_fisico
+                    ),
+
+                stock_nuevo:
+                    Number(
+                        response.data
+                            ?.stock_nuevo ??
+                        ajustes.value[index]
+                            .stock_nuevo
+                    ),
+
+                diferencia_registrada:
+                    Number(
+                        response.data
+                            ?.diferencia_registrada ??
+                        ajustes.value[index]
+                            .diferencia_registrada
+                    ),
+
+                diferencia_actual:
+                    Number(
+                        response.data
+                            ?.diferencia_actual ??
+                        0
+                    ),
+
+                cantidad_ajustada:
+                    Number(
+                        response.data
+                            ?.cantidad_ajustada ??
+                        0
+                    ),
+
+                faltante_registrado:
+                    Number(
+                        response.data
+                            ?.faltante_registrado ??
+                        0
+                    ),
+
+                sobrante_registrado:
+                    Number(
+                        response.data
+                            ?.sobrante_registrado ??
+                        0
+                    ),
+
+                mensaje:
+                    response.data
+                        ?.mensaje ??
+                    null,
+
+                procesado:
+                    true,
+            };
+        };
+
+        const guardarAjuste = async () => {
+            if (
+                !usuario.value ||
+                !usuario.value.id
+            ) {
+                error.value =
+                    "No existe un usuario autenticado.";
+
+                return;
+            }
+
+            const pendientes =
+                ajustes.value.filter(
+                    (ajuste) =>
+                        !ajuste.procesado
                 );
 
-                if (!confirmar) return;
+            if (pendientes.length === 0) {
+                error.value =
+                    "No hay ajustes pendientes para guardar.";
 
-                loading.value = true;
-                error.value = null;
+                return;
+            }
 
-                for (const ajuste of ajustes.value) {
-                    await api.post("/ajuste", {
-                        producto_id: ajuste.id,
-                        stock_fisico: ajuste.stock_fisico,
-                        motivo: ajuste.razon,
-                        user_id: usuario.value.id,
-                    });
+            const observacionGeneral =
+                razon.value.trim();
+
+            if (!observacionGeneral) {
+                error.value =
+                    "Debe ingresar una observación general para los ajustes.";
+
+                return;
+            }
+
+            if (
+                observacionGeneral.length >
+                500
+            ) {
+                error.value =
+                    "La observación no puede superar los 500 caracteres.";
+
+                return;
+            }
+
+            const confirmar = confirm(
+                `¿Está seguro que desea guardar ${pendientes.length} ajuste(s) de inventario?`
+            );
+
+            if (!confirmar) {
+                return;
+            }
+
+            loading.value = true;
+            error.value = null;
+
+            try {
+                for (
+                    const ajustePendiente
+                    of pendientes
+                ) {
+                    const response =
+                        await api.post(
+                            "/ajuste",
+                            {
+                                producto_id:
+                                    ajustePendiente
+                                        .producto_id,
+
+                                stock_fisico:
+                                    ajustePendiente
+                                        .stock_fisico,
+
+                                motivo:
+                                    observacionGeneral,
+
+                                user_id:
+                                    usuario.value.id,
+                            }
+                        );
+
+                    /*
+                    | Marcar el registro como procesado
+                    | inmediatamente después de que
+                    | Laravel confirma el guardado.
+                    */
+                    actualizarAjusteDesdeRespuesta(
+                        ajustePendiente,
+                        response
+                    );
+
+                    const pdfBase64 =
+                        response.data
+                            ?.pdf_base64;
+
+                    const identificadorPdf =
+                        response.data
+                            ?.folio_ajuste ??
+                        ajustePendiente
+                            .producto_id;
+
+                    const nombreArchivo =
+                        response.data
+                            ?.nombre_archivo ??
+                        `ajuste-${identificadorPdf}.pdf`;
+
+                    descargarPdfBase64(
+                        pdfBase64,
+                        nombreArchivo
+                    );
                 }
 
                 ajustes.value = [];
-                localStorage.removeItem("ajustesInventario");
 
-                alert("Ajuste de inventario realizado correctamente.");
+                localStorage.removeItem(
+                    "ajustesInventario"
+                );
 
+                localStorage.removeItem(
+                    "observacionAjusteInventario"
+                );
+
+                limpiarFormulario();
+
+                error.value = null;
+
+                alert(
+                    "Ajustes de inventario realizados correctamente. Los comprobantes PDF fueron descargados."
+                );
             } catch (err) {
-                error.value = err.response?.data?.message || "Error al guardar los ajustes en el backend.";
-                console.error(err);
+                if (
+                    err.response?.status ===
+                    422
+                ) {
+                    const errores =
+                        err.response?.data
+                            ?.errors;
+
+                    if (errores) {
+                        error.value =
+                            Object.values(
+                                errores
+                            )
+                                .flat()
+                                .join(" ");
+                    } else {
+                        error.value =
+                            err.response
+                                ?.data
+                                ?.message ||
+                            "Los datos enviados no son válidos.";
+                    }
+                } else {
+                    error.value =
+                        err.response?.data
+                            ?.message ||
+                        err.message ||
+                        "Error al guardar los ajustes en el backend.";
+                }
+
+                console.error(
+                    "Error al guardar los ajustes:",
+                    err
+                );
             } finally {
                 loading.value = false;
             }
         };
 
-        const eliminarAjuste = (index) => {
-            ajustes.value.splice(index, 1);
+        const eliminarAjuste = (
+            index
+        ) => {
+            if (
+                ajustes.value[index]
+                    ?.procesado
+            ) {
+                error.value =
+                    "Este ajuste ya fue guardado y no puede eliminarse.";
+
+                return;
+            }
+
+            ajustes.value.splice(
+                index,
+                1
+            );
         };
 
-        const editarAjuste = (ajuste) => {
-            productoId.value = ajuste.id;
-            codigoProducto.value = ajuste.codigo_producto;
-            productoBusqueda.value = ajuste.nombre;
+        const editarAjuste = (
+            ajuste
+        ) => {
+            if (ajuste.procesado) {
+                error.value =
+                    "Este ajuste ya fue guardado y no puede editarse.";
 
-            cantidadActual.value = Number(ajuste.stock_anterior || 0);
-            stockFisico.value = Number(ajuste.stock_fisico || 0);
+                return;
+            }
 
-            razon.value = ajuste.razon;
+            productoId.value =
+                ajuste.producto_id;
+
+            codigoProducto.value =
+                ajuste.codigo_producto;
+
+            productoBusqueda.value =
+                ajuste.nombre;
+
+            cantidadActual.value =
+                Number(
+                    ajuste
+                        .stock_sistema_anterior ??
+                    0
+                );
+
+            stockFisico.value =
+                Number(
+                    ajuste.stock_fisico ??
+                    0
+                );
 
             nextTick(() => {
-                if (stockFisicoInput.value) {
+                if (
+                    stockFisicoInput.value
+                ) {
                     stockFisicoInput.value.focus();
+                    stockFisicoInput.value.select();
                 }
             });
+        };
+
+        const normalizarAjusteGuardado = (
+            ajuste,
+            index
+        ) => {
+            const tipoAjuste =
+                ajuste.tipo_ajuste ===
+                "perdida"
+                    ? "faltante"
+                    : ajuste.tipo_ajuste;
+
+            const productoIdGuardado =
+                ajuste.producto_id ??
+                ajuste.id ??
+                null;
+
+            const stockSistema =
+                ajuste
+                    .stock_sistema_anterior ??
+                ajuste.stock_anterior ??
+                0;
+
+            const diferencia = Number(
+                ajuste
+                    .diferencia_registrada ??
+                0
+            );
+
+            const cantidad = Number(
+                ajuste
+                    .cantidad_ajustada ??
+                Math.abs(diferencia)
+            );
+
+            return {
+                ...ajuste,
+
+                razon:
+                    undefined,
+
+                uid:
+                    ajuste.uid ??
+                    `${productoIdGuardado}-${Date.now()}-${index}`,
+
+                producto_id:
+                    productoIdGuardado,
+
+                tipo_ajuste:
+                    tipoAjuste,
+
+                movimiento:
+                    ajuste.movimiento ??
+                    (
+                        tipoAjuste ===
+                        "faltante"
+                            ? "salida"
+                            : tipoAjuste ===
+                                "sobrante"
+                                ? "entrada"
+                                : null
+                    ),
+
+                /*
+                | No se genera una acción
+                | fija desde Vue.
+                */
+                accion:
+                    ajuste.accion ??
+                    null,
+
+                stock_sistema_anterior:
+                    Number(
+                        stockSistema
+                    ),
+
+                stock_fisico:
+                    Number(
+                        ajuste.stock_fisico ??
+                        0
+                    ),
+
+                stock_nuevo:
+                    Number(
+                        ajuste.stock_nuevo ??
+                        ajuste.stock_fisico ??
+                        0
+                    ),
+
+                diferencia_registrada:
+                    diferencia,
+
+                diferencia_actual:
+                    Number(
+                        ajuste
+                            .diferencia_actual ??
+                        0
+                    ),
+
+                cantidad_ajustada:
+                    cantidad,
+
+                faltante_registrado:
+                    Number(
+                        ajuste
+                            .faltante_registrado ??
+                        (
+                            tipoAjuste ===
+                            "faltante"
+                                ? cantidad
+                                : 0
+                        )
+                    ),
+
+                sobrante_registrado:
+                    Number(
+                        ajuste
+                            .sobrante_registrado ??
+                        (
+                            tipoAjuste ===
+                            "sobrante"
+                                ? cantidad
+                                : 0
+                        )
+                    ),
+
+                mensaje:
+                    ajuste.mensaje ??
+                    null,
+
+                procesado:
+                    Boolean(
+                        ajuste.procesado
+                    ),
+            };
         };
 
         onMounted(() => {
             checkSesion();
 
-            const ajustesGuardados = localStorage.getItem("ajustesInventario");
+            const ajustesGuardados =
+                localStorage.getItem(
+                    "ajustesInventario"
+                );
 
             if (ajustesGuardados) {
-                ajustes.value = JSON.parse(ajustesGuardados);
+                try {
+                    const registros =
+                        JSON.parse(
+                            ajustesGuardados
+                        );
+
+                    if (
+                        Array.isArray(
+                            registros
+                        )
+                    ) {
+                        ajustes.value =
+                            registros.map(
+                                normalizarAjusteGuardado
+                            );
+                    } else {
+                        ajustes.value = [];
+                    }
+                } catch (err) {
+                    console.error(
+                        "Error al recuperar los ajustes:",
+                        err
+                    );
+
+                    ajustes.value = [];
+
+                    localStorage.removeItem(
+                        "ajustesInventario"
+                    );
+                }
+            }
+
+            const observacionGuardada =
+                localStorage.getItem(
+                    "observacionAjusteInventario"
+                );
+
+            if (
+                observacionGuardada
+            ) {
+                razon.value =
+                    observacionGuardada;
             }
 
             nextTick(() => {
-                if (productoInput.value) {
-                    productoInput.value.focus();
-                }
+                productoInput.value?.focus();
             });
         });
 
         return {
             sidebarOpen,
             ajustes,
+            ajustesPendientes,
             loading,
             error,
             usuario,
@@ -662,24 +1675,32 @@ export default {
             stockFisico,
             razon,
 
-            resultadoAjuste,
-
             productoInput,
             stockFisicoInput,
+
+            resultadoAjuste,
 
             formatNumber,
             formatSignedNumber,
 
+            textoTipoAjuste,
+            claseTipoAjuste,
+
+            textoMovimiento,
+            claseMovimiento,
+
+            textoEstado,
+            claseEstado,
+
             buscarProducto,
+            agregarAjusteDirecto,
             guardarAjuste,
             eliminarAjuste,
             editarAjuste,
-            agregarAjusteDirecto,
         };
     },
 };
 </script>
-
 <style scoped>
 
 /* =========================

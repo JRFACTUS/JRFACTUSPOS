@@ -103,21 +103,7 @@
             </div>
           </div>
 
-          <div class="quick-card">
-            <i class="bi bi-box-seam"></i>
-            <div>
-              <h6>Inventario</h6>
-              <p>Productos y existencias.</p>
-            </div>
-          </div>
-
-          <div class="quick-card">
-            <i class="bi bi-person-vcard"></i>
-            <div>
-              <h6>Clientes</h6>
-              <p>Directorio de clientes.</p>
-            </div>
-          </div>
+          
         </section>
       </main>
     </div>

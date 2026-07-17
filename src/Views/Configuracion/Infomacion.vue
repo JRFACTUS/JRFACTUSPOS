@@ -2,115 +2,101 @@
 <template>
   <div class="empresa-page">
 
-  <div class="info-card">
-  <div class="info-header">
-    <span>Información de la Empresa</span>
+    <div class="info-card">
+     <div v-if="permisos?.listar" class="info-header">
+  <span>Información de la Empresa</span>
 
-    <button type="button" class="btn-edit" @click="abrirModalEditar">
-      <i class="bi bi-pencil"></i> Editar
-    </button>
+  <button type="button" v-if="permisos?.actualizar" class="btn-edit" @click="abrirModalEditar">
+    <i v-if="permisos?.actualizar" class="bi bi-pencil"></i> Editar
+  </button>
+</div>
+
+<div v-else class="info-header">
+  <span class="text-danger">❌ No tiene permiso para ver esta información</span>
+</div>
+
+      <form v-if="permisos?.listar" class="info-body form-grid" @submit.prevent>
+
+  <div class="form-group col-4">
+    <label>Nombre comercial</label>
+    <input class="form-input" :value="empresa.nombre" readonly />
   </div>
 
-  <form class="info-body form-grid" @submit.prevent>
+  <div class="form-group col-4">
+    <label>Razón social</label>
+    <input class="form-input" :value="empresa.razons" readonly />
+  </div>
 
-    <div class="form-group col-4">
-      <label>Nombre comercial</label>
-      <input class="form-input" :value="empresa.nombre" readonly />
+  <div class="form-group col-4">
+    <label>RFC</label>
+    <input class="form-input" :value="empresa.rfc" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>Régimen fiscal</label>
+    <input class="form-input" :value="empresa.regimen" readonly />
+  </div>
+
+  <div class="form-group col-2">
+    <label>Código Postal</label>
+    <input class="form-input" :value="empresa.codpos" readonly />
+  </div>
+
+  <div class="form-group col-6">
+    <label>Dirección</label>
+    <textarea class="form-input" rows="2" readonly
+      :value="`${empresa.calle || ''} ${empresa.numero_exterior || ''} ${empresa.numero_interior ? 'Int. ' + empresa.numero_interior : ''}${empresa.colonia ? ', ' + empresa.colonia : ''}${empresa.ciudad ? ', ' + empresa.ciudad : ''}${empresa.estado ? ', ' + empresa.estado : ''}`">
+    </textarea>
+  </div>
+
+  <div class="form-group col-4">
+    <label>Correo electrónico</label>
+    <input class="form-input" :value="empresa.email" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>Teléfono</label>
+    <input class="form-input" :value="empresa.telefono" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>Dominio</label>
+    <input class="form-input" :value="empresa.dominio" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>Sandbox</label>
+    <input class="form-input" :value="empresa.sandbox ? 'Activado' : 'Producción'" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>Certificado CSD</label>
+    <input class="form-input" :value="empresa.cer_path ? '✔ Configurado' : '✖ Sin configurar'" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>Llave CSD</label>
+    <input class="form-input" :value="empresa.key_path ? '✔ Configurada' : '✖ Sin configurar'" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>e.Firma</label>
+    <input class="form-input"
+      :value="empresa.fiel_cer_path && empresa.fiel_key_path ? '✔ Configurada' : '✖ Sin configurar'" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>Folios mínimos</label>
+    <input class="form-input" :value="empresa.folios_minimos" readonly />
+  </div>
+
+  <div class="form-group col-4">
+    <label>Última actualización</label>
+    <input class="form-input" :value="empresa.updated_at" readonly />
+  </div>
+
+</form>
     </div>
-
-    <div class="form-group col-4">
-      <label>Razón social</label>
-      <input class="form-input" :value="empresa.razons" readonly />
-    </div>
-
-    <div class="form-group col-4">
-      <label>RFC</label>
-      <input class="form-input" :value="empresa.rfc" readonly />
-    </div>
-
-    <div class="form-group col-4">
-      <label>Régimen fiscal</label>
-      <input class="form-input" :value="empresa.regimen" readonly />
-    </div>
-
-    <div class="form-group col-2">
-      <label>Código Postal</label>
-      <input class="form-input" :value="empresa.codpos" readonly />
-    </div>
-
-    <div class="form-group col-6">
-      <label>Dirección</label>
-      <textarea
-        class="form-input"
-        rows="2"
-        readonly
-        :value="`${empresa.calle || ''} ${empresa.numero_exterior || ''} ${empresa.numero_interior ? 'Int. ' + empresa.numero_interior : ''}${empresa.colonia ? ', ' + empresa.colonia : ''}${empresa.ciudad ? ', ' + empresa.ciudad : ''}${empresa.estado ? ', ' + empresa.estado : ''}`">
-      </textarea>
-    </div>
-
-    <div class="form-group col-4">
-      <label>Correo electrónico</label>
-      <input class="form-input" :value="empresa.email" readonly />
-    </div>
-
-    <div class="form-group col-4">
-      <label>Teléfono</label>
-      <input class="form-input" :value="empresa.telefono" readonly />
-    </div>
-
-    <div class="form-group col-4">
-      <label>Dominio</label>
-      <input class="form-input" :value="empresa.dominio" readonly />
-    </div>
-
-    <div class="form-group col-4">
-      <label>Sandbox</label>
-      <input
-        class="form-input"
-        :value="empresa.sandbox ? 'Activado' : 'Producción'"
-        readonly
-      />
-    </div>
-
-    <div class="form-group col-4">
-      <label>Certificado CSD</label>
-      <input
-        class="form-input"
-        :value="empresa.cer_path ? '✔ Configurado' : '✖ Sin configurar'"
-        readonly
-      />
-    </div>
-
-    <div class="form-group col-4">
-      <label>Llave CSD</label>
-      <input
-        class="form-input"
-        :value="empresa.key_path ? '✔ Configurada' : '✖ Sin configurar'"
-        readonly
-      />
-    </div>
-
-    <div class="form-group col-4">
-      <label>e.Firma</label>
-      <input
-        class="form-input"
-        :value="empresa.fiel_cer_path && empresa.fiel_key_path ? '✔ Configurada' : '✖ Sin configurar'"
-        readonly
-      />
-    </div>
-
-    <div class="form-group col-4">
-      <label>Folios mínimos</label>
-      <input class="form-input" :value="empresa.folios_minimos" readonly />
-    </div>
-
-    <div class="form-group col-4">
-      <label>Última actualización</label>
-      <input class="form-input" :value="empresa.updated_at" readonly />
-    </div>
-
-  </form>
-</div>
     <!-- MODAL EDITAR -->
     <BaseModal v-model:visible="modalEditarVisible" title="Detalles de tu empresa" size="xl">
       <div class="empresa-modal">
@@ -284,7 +270,7 @@
 
 <script>
 import BaseModal from '@/components/BaseModal.vue';
-import api from '@/services/api.js';
+import api, { obtenerPermisosPorModulo } from '@/services/api.js';
 
 export default {
   name: 'Informacion',
@@ -294,6 +280,7 @@ export default {
     return {
       empresa: {},
       empresaTemp: {},
+      permisos: null, // null = aún no cargado
       archivos: {
         logo: null,
         cer: null,
@@ -315,12 +302,6 @@ export default {
     };
   },
 
-  mounted() {
-    this.cargarEmpresa();
-    this.obtenerRegimenes();
-  },
-
-  // ✅ computed en su bloque correcto
   computed: {
     logoUrl() {
       if (this.logoPreview) return this.logoPreview;
@@ -328,7 +309,21 @@ export default {
     },
   },
 
+  mounted() {
+    this.cargarEmpresa();
+    this.obtenerRegimenes();
+    this.fetchPermisos();
+  },
+
   methods: {
+    async fetchPermisos() {
+      try {
+        this.permisos = await obtenerPermisosPorModulo('configuracion');
+      } catch (error) {
+        console.error('Error al cargar permisos:', error);
+      }
+    },
+
     obtenerRegimenConCodigo(valor) {
       const reg = this.regimenes.find(
         r => r.codigo === valor || r.descripcion === valor
@@ -372,7 +367,6 @@ export default {
           created_at: d.created_at || '',
           updated_at: d.updated_at || '',
         };
-
       } catch (error) {
         console.error('Error al cargar empresa:', error);
       }
@@ -489,7 +483,6 @@ export default {
         };
 
         this.modalEditarVisible = false;
-        // ← usamos empresaActualizada.id antes de pisarlo
         alert(empresaActualizada.id ? 'Empresa actualizada correctamente.' : 'Empresa creada correctamente.');
 
       } catch (error) {
@@ -533,6 +526,7 @@ textarea.form-input {
   padding: 10px 13px;
   resize: none;
 }
+
 .empresa-page {
   width: 100%;
 }

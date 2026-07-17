@@ -95,9 +95,13 @@
 
           </form>
 
-          <a href="#" class="forgot-password">
-            ¿Olvidaste tu contraseña?
-          </a>
+      <p class="forgot-password">
+        Contacta a soporte en
+        <a href="mailto:soporte@jrfactu.com">
+          soporte@jrfactu.com
+        </a>
+        para restablecer tu contraseña.
+      </p>
 
         </div>
 
@@ -455,45 +459,580 @@ import router from '@/router';
 
 export default {
   name: 'LoginView',
+
   setup() {
     const name = ref('');
     const password = ref('');
     const loading = ref(false);
     const error = ref(null);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Comprobar valor de permiso
+    |--------------------------------------------------------------------------
+    */
+    const permisoActivo = (valor) => {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === '1' ||
+        valor === 'true'
+      );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Normalizar permisos
+    |--------------------------------------------------------------------------
+    |
+    | Acepta permisos como arreglo:
+    |
+    | [
+    |   {
+    |     modulo: "ventas",
+    |     listar: 1
+    |   }
+    | ]
+    |
+    | O como objeto:
+    |
+    | {
+    |   ventas: {
+    |     listar: true
+    |   }
+    | }
+    */
+    const normalizarPermisos = (permisos) => {
+      if (Array.isArray(permisos)) {
+        return permisos.map((permiso) => ({
+          modulo:
+            permiso?.modulo?.nombre ||
+            permiso?.modulo?.slug ||
+            permiso?.modulo ||
+            permiso?.nombre_modulo ||
+            '',
+
+          crear:
+            permiso?.crear ??
+            permiso?.pivot?.crear ??
+            false,
+
+          listar:
+            permiso?.listar ??
+            permiso?.pivot?.listar ??
+            false,
+
+          actualizar:
+            permiso?.actualizar ??
+            permiso?.pivot?.actualizar ??
+            false,
+
+          eliminar:
+            permiso?.eliminar ??
+            permiso?.pivot?.eliminar ??
+            false
+        }));
+      }
+
+      if (
+        permisos &&
+        typeof permisos === 'object'
+      ) {
+        return Object.entries(permisos).map(
+          ([modulo, acciones]) => ({
+            modulo,
+
+            crear:
+              acciones?.crear ??
+              false,
+
+            listar:
+              acciones?.listar ??
+              false,
+
+            actualizar:
+              acciones?.actualizar ??
+              false,
+
+            eliminar:
+              acciones?.eliminar ??
+              false
+          })
+        );
+      }
+
+      return [];
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Extraer permisos de la respuesta
+    |--------------------------------------------------------------------------
+    */
+    const extraerPermisos = (respuesta, usuario) => {
+      /*
+       * Primera opción:
+       * res.data.user.permisos
+       */
+      if (usuario?.permisos) {
+        return normalizarPermisos(
+          usuario.permisos
+        );
+      }
+
+      /*
+       * Segunda opción:
+       * res.data.permisos
+       */
+      if (respuesta?.permisos) {
+        return normalizarPermisos(
+          respuesta.permisos
+        );
+      }
+
+      /*
+       * Tercera opción:
+       * permisos dentro del rol.
+       */
+      if (usuario?.role?.permisos) {
+        return normalizarPermisos(
+          usuario.role.permisos
+        );
+      }
+
+      if (usuario?.rol?.permisos) {
+        return normalizarPermisos(
+          usuario.rol.permisos
+        );
+      }
+
+      /*
+       * Cuarta opción:
+       *
+       * res.data.permisos_ventas
+       * res.data.permisos_compras
+       * res.data.permisos_categoria
+       */
+      const permisosEncontrados = [];
+
+      Object.entries(respuesta || {}).forEach(
+        ([clave, acciones]) => {
+          if (!clave.startsWith('permisos_')) {
+            return;
+          }
+
+          const modulo = clave
+            .replace('permisos_', '')
+            .trim()
+            .toLowerCase();
+
+          permisosEncontrados.push({
+            modulo,
+
+            crear:
+              acciones?.crear ??
+              false,
+
+            listar:
+              acciones?.listar ??
+              false,
+
+            actualizar:
+              acciones?.actualizar ??
+              false,
+
+            eliminar:
+              acciones?.eliminar ??
+              false
+          });
+        }
+      );
+
+      return permisosEncontrados;
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Limpiar sesión anterior
+    |--------------------------------------------------------------------------
+    */
+    const limpiarSesionAnterior = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('permisos');
+
+      /*
+       * Eliminar:
+       *
+       * permisos_ventas
+       * permisos_compras
+       * permisos_inventario
+       */
+      Object.keys(localStorage).forEach((clave) => {
+        if (clave.startsWith('permisos_')) {
+          localStorage.removeItem(clave);
+        }
+      });
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Guardar permisos individuales
+    |--------------------------------------------------------------------------
+    |
+    | Esto permite que tus otras vistas sigan usando:
+    |
+    | localStorage.getItem('permisos_ventas')
+    */
+    const guardarPermisosIndividuales = (permisos) => {
+      permisos.forEach((permiso) => {
+        const modulo = String(
+          permiso.modulo || ''
+        )
+          .trim()
+          .toLowerCase();
+
+        if (!modulo) {
+          return;
+        }
+
+        localStorage.setItem(
+          `permisos_${modulo}`,
+          JSON.stringify({
+            listar: permisoActivo(permiso.listar),
+            crear: permisoActivo(permiso.crear),
+            actualizar: permisoActivo(
+              permiso.actualizar
+            ),
+            eliminar: permisoActivo(
+              permiso.eliminar
+            )
+          })
+        );
+      });
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Buscar permiso
+    |--------------------------------------------------------------------------
+    */
+    const tienePermiso = (
+      permisos,
+      modulo,
+      accion = 'listar'
+    ) => {
+      const permiso = permisos.find((item) => {
+        return (
+          String(item.modulo)
+            .trim()
+            .toLowerCase() ===
+          String(modulo)
+            .trim()
+            .toLowerCase()
+        );
+      });
+
+      if (!permiso) {
+        return false;
+      }
+
+      return permisoActivo(
+        permiso[accion]
+      );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ruta inicial del usuario
+    |--------------------------------------------------------------------------
+    */
+    const obtenerRutaInicial = (usuario) => {
+      const esAdministrador =
+        usuario?.es_admin === true ||
+        usuario?.es_admin === 1 ||
+        usuario?.es_admin === '1' ||
+        usuario?.es_admin === 'true';
+
+      if (esAdministrador) {
+        return '/dashboard';
+      }
+
+      const permisos = Array.isArray(
+        usuario?.permisos
+      )
+        ? usuario.permisos
+        : [];
+
+      const rutas = [
+        {
+          modulo: 'dashboard',
+          accion: 'listar',
+          ruta: '/dashboard'
+        },
+        {
+          modulo: 'ventas',
+          accion: 'crear',
+          ruta: '/ventas'
+        },
+        {
+          modulo: 'ventas',
+          accion: 'listar',
+          ruta: '/ventas'
+        },
+        {
+          modulo: 'caja',
+          accion: 'listar',
+          ruta: '/ventas/caja'
+        },
+        {
+          modulo: 'historial',
+          accion: 'listar',
+          ruta: '/ventas/historial'
+        },
+        {
+          modulo: 'categoria',
+          accion: 'listar',
+          ruta: '/categoria'
+        },
+        {
+          modulo: 'medida',
+          accion: 'listar',
+          ruta: '/medidas'
+        },
+        {
+          modulo: 'productos',
+          accion: 'listar',
+          ruta: '/productos'
+        },
+        {
+          modulo: 'clientes',
+          accion: 'listar',
+          ruta: '/clientes'
+        },
+        {
+          modulo: 'provedores',
+          accion: 'listar',
+          ruta: '/provedores'
+        },
+        {
+          modulo: 'compras',
+          accion: 'crear',
+          ruta: '/compras'
+        },
+        {
+          modulo: 'compras',
+          accion: 'listar',
+          ruta: '/compras/listar_compras'
+        },
+        {
+          modulo: 'inventario',
+          accion: 'listar',
+          ruta: '/inventario'
+        },
+        {
+          modulo: 'kardex',
+          accion: 'listar',
+          ruta: '/inventario/kardex'
+        },
+        {
+          modulo: 'usuarios',
+          accion: 'listar',
+          ruta: '/usuarios'
+        },
+        {
+          modulo: 'roles',
+          accion: 'listar',
+          ruta: '/usuarios/roles'
+        },
+        {
+          modulo: 'facturacion',
+          accion: 'crear',
+          ruta: '/facturacion'
+        },
+        {
+          modulo: 'listar_factura',
+          accion: 'listar',
+          ruta: '/facturacion/listar_factura'
+        }
+      ];
+
+      const primeraRuta = rutas.find((opcion) => {
+        return tienePermiso(
+          permisos,
+          opcion.modulo,
+          opcion.accion
+        );
+      });
+
+      return primeraRuta?.ruta || '/no-autorizado';
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Iniciar sesión
+    |--------------------------------------------------------------------------
+    */
     const login = async () => {
       loading.value = true;
       error.value = null;
+
       try {
         const res = await api.post('/login', {
           name: name.value,
-          password: password.value,
+          password: password.value
         });
 
+        console.log(
+          'Respuesta completa del login:',
+          res.data
+        );
+
         const token = res.data.token;
-        const user = res.data.user;
 
-        // Guardar token y usuario en localStorage
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        const usuarioApi =
+          res.data.user ||
+          res.data.usuario;
 
-        router.push('/ventas'); // Redirige al dashboard
+        if (!token) {
+          throw new Error(
+            'El servidor no devolvió el token'
+          );
+        }
+
+        if (!usuarioApi) {
+          throw new Error(
+            'El servidor no devolvió el usuario'
+          );
+        }
+
+        /*
+         * Obtener todos los permisos.
+         */
+        const permisos = extraerPermisos(
+          res.data,
+          usuarioApi
+        );
+
+        /*
+         * Agregar los permisos dentro del usuario.
+         */
+        const usuarioCompleto = {
+          ...usuarioApi,
+          permisos
+        };
+
+        /*
+         * Eliminar datos del usuario anterior.
+         */
+        limpiarSesionAnterior();
+
+        /*
+         * Guardar nueva sesión.
+         */
+        localStorage.setItem(
+          'token',
+          token
+        );
+
+        localStorage.setItem(
+          'user',
+          JSON.stringify(usuarioCompleto)
+        );
+
+        localStorage.setItem(
+          'permisos',
+          JSON.stringify(permisos)
+        );
+
+        /*
+         * Guardar permisos_ventas,
+         * permisos_compras, etc.
+         */
+        guardarPermisosIndividuales(
+          permisos
+        );
+
+        /*
+         * Avisar al Sidebar.
+         */
+        window.dispatchEvent(
+          new Event('permisos-actualizados')
+        );
+
+        console.log(
+          'Usuario guardado:',
+          usuarioCompleto
+        );
+
+        console.log(
+          'Permisos guardados:',
+          permisos
+        );
+
+        /*
+         * Ir al primer módulo permitido.
+         */
+        const rutaInicial =
+          obtenerRutaInicial(usuarioCompleto);
+
+        await router.replace(rutaInicial);
       } catch (e) {
-        error.value = e.response?.data?.message || 'Error al iniciar sesión';
+        console.error(
+          'Error al iniciar sesión:',
+          e
+        );
+
+        error.value =
+          e.response?.data?.message ||
+          e.message ||
+          'Error al iniciar sesión';
       } finally {
         loading.value = false;
       }
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Comprobar sesión existente
+    |--------------------------------------------------------------------------
+    */
     onMounted(() => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        router.push('/dashboard'); // Redirige si ya hay sesión
+      const token = localStorage.getItem(
+        'token'
+      );
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const usuarioGuardado = JSON.parse(
+          localStorage.getItem('user') || '{}'
+        );
+
+        const rutaInicial =
+          obtenerRutaInicial(usuarioGuardado);
+
+        router.replace(rutaInicial);
+      } catch (e) {
+        console.error(
+          'La sesión guardada no es válida:',
+          e
+        );
+
+        limpiarSesionAnterior();
       }
     });
 
-    return { name, password, loading, error, login };
-  },
+    return {
+      name,
+      password,
+      loading,
+      error,
+      login
+    };
+  }
 };
 </script>
 

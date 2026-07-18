@@ -10,7 +10,10 @@
             <main class="container-fluid p-4">
 
                 <!-- Loading -->
-                <div v-if="loading" class="text-center py-5">
+                <div
+                    v-if="loading || permisos === null"
+                    class="text-center py-5"
+                >
                     <div class="spinner-border text-primary" role="status"></div>
                 </div>
 
@@ -19,8 +22,18 @@
                     {{ error }}
                 </div>
 
+                <!-- Sin permiso para listar -->
+                <div
+                    v-if="!loading && permisos !== null && !permisos.listar"
+                    class="alert alert-warning mt-3"
+                    role="alert"
+                >
+                    <i class="bi bi-shield-lock me-2"></i>
+                    No tienes permiso para ver ventas.
+                </div>
+
                 <!-- Contenedor Principal -->
-                <div v-if="!loading" class="ventas-container">
+                <div v-if="!loading && permisos?.listar" class="ventas-container">
 
                     <!-- Header -->
                     <div class="ventas-header">
@@ -151,7 +164,7 @@
                                                 PDF
                                             </button>
 
-                                            <button class="btn-action btn-devolucion"
+                                            <button v-if="permisos.actualizar" class="btn-action btn-devolucion"
                                                 @click="abrirModalDevolucion(venta)">
                                                 Devolución
                                             </button>
@@ -232,7 +245,8 @@
                 </div>
 
                 <!-- Modal Devolución -->
-                <div v-if="modalDevolucionVisible" class="modal fade show d-block" tabindex="-1">
+                <div v-if="modalDevolucionVisible && permisos?.actualizar"
+                    class="modal fade show d-block" tabindex="-1">
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
 
@@ -286,7 +300,8 @@
                                     Cancelar
                                 </button>
 
-                                <button class="btn btn-warning" @click="procesarDevolucion">
+                                <button v-if="permisos.actualizar" class="btn btn-warning"
+                                    @click="procesarDevolucion">
                                     Procesar Devolución
                                 </button>
 
@@ -307,7 +322,7 @@
 <script setup>
 import Header from '@/components/HeaderVue.vue';
 import Sidebar from '@/components/Sidebar.vue';
-import api from '@/services/api.js';
+import api, { obtenerPermisosPorModulo } from '@/services/api.js';
 import { ref, onMounted } from 'vue';
 
 const sidebarOpen = ref(true);
@@ -326,11 +341,76 @@ const fechaFiltro = ref('');
 const loading = ref(false);
 const error = ref(null);
 const totalGlobal = ref(0);
+const permisos = ref(null);
+
+// === Permisos ===
+const permisoActivo = (valor) => {
+    return (
+        valor === true ||
+        valor === 1 ||
+        valor === '1' ||
+        valor === 'true'
+    );
+};
+
+const fetchPermisos = async () => {
+    try {
+        const usuarioGuardado = localStorage.getItem('user');
+        const usuario = usuarioGuardado
+            ? JSON.parse(usuarioGuardado)
+            : null;
+
+        if (permisoActivo(usuario?.es_admin)) {
+            permisos.value = {
+                listar: true,
+                crear: true,
+                actualizar: true,
+                eliminar: true
+            };
+
+            return;
+        }
+
+        const respuesta = await obtenerPermisosPorModulo('historial');
+
+        const contenido = respuesta?.data ?? respuesta ?? {};
+
+        const datos =
+            contenido?.permisos ??
+            contenido?.data?.permisos ??
+            contenido?.data ??
+            contenido;
+
+        permisos.value = {
+            listar: permisoActivo(datos?.listar),
+            crear: permisoActivo(datos?.crear),
+            actualizar: permisoActivo(datos?.actualizar),
+            eliminar: permisoActivo(datos?.eliminar)
+        };
+    } catch (e) {
+        console.error('Error al obtener los permisos de ventas:', e);
+
+        permisos.value = {
+            listar: false,
+            crear: false,
+            actualizar: false,
+            eliminar: false
+        };
+
+        error.value =
+            e.response?.data?.message ||
+            'No fue posible cargar los permisos de ventas.';
+    }
+};
 
 // === Funciones ===
 
 // 🔹 Obtener ventas (usa ruta según filtros)
 const fetchVentas = async () => {
+    if (!permisos.value?.listar) {
+        return;
+    }
+
     loading.value = true;
     error.value = null;
 
@@ -374,6 +454,11 @@ const filtrarVentas = () => {
 
 // 🔹 Ver detalle de venta
 const verDetalle = async (venta) => {
+    if (!permisos.value?.listar) {
+        error.value = 'No tienes permiso para ver ventas.';
+        return;
+    }
+
     try {
         const res = await api.get(`/detalleVenta/${venta.folio_pago}`);
 
@@ -410,6 +495,11 @@ const verDetalle = async (venta) => {
 };
 // 🔹 Abrir modal devolución
 const abrirModalDevolucion = async (venta) => {
+    if (!permisos.value?.actualizar) {
+        error.value = 'No tienes permiso para realizar devoluciones.';
+        return;
+    }
+
     try {
         const res = await api.get(`/detalleVenta/${venta.folio_pago}`);
 
@@ -456,6 +546,11 @@ const cerrarModalDevolucion = () => {
 
 // 🔹 Procesar devolución
 const procesarDevolucion = async () => {
+    if (!permisos.value?.actualizar) {
+        error.value = 'No tienes permiso para realizar devoluciones.';
+        return;
+    }
+
     if (!ventaDevolucion.value) {
         alert('❌ No hay venta seleccionada para devolución');
         return;
@@ -492,6 +587,11 @@ const procesarDevolucion = async () => {
 
 // 🔹 Descargar ticket PDF
 const descargarTicket = async (folioPago) => {
+    if (!permisos.value?.listar) {
+        error.value = 'No tienes permiso para ver ventas.';
+        return;
+    }
+
     try {
         const res = await api.get(`/ticked/${folioPago}`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
@@ -516,7 +616,13 @@ const formatFecha = (fecha) => new Date(fecha).toLocaleDateString('es-MX', {
 });
 
 // === Carga inicial ===
-onMounted(fetchVentas);
+onMounted(async () => {
+    await fetchPermisos();
+
+    if (permisos.value?.listar) {
+        await fetchVentas();
+    }
+});
 </script>
 
 

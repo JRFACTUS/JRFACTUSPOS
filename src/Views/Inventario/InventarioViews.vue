@@ -9,7 +9,10 @@
             <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
             <main class="container-fluid p-4">
-                <div v-if="loading" class="text-center py-5">
+                <div
+                    v-if="loading || permisos === null"
+                    class="text-center py-5"
+                >
                     <div
                         class="spinner-border text-primary"
                         role="status"
@@ -32,7 +35,21 @@
                 </div>
 
                 <div
-                    v-if="!loading"
+                    v-if="
+                        !loading &&
+                        permisos !== null &&
+                        !permisos.listar
+                    "
+                    class="alert alert-warning"
+                    role="alert"
+                >
+                    <i class="bi bi-shield-lock me-2"></i>
+
+                    No tienes permiso para ver inventario.
+                </div>
+
+                <div
+                    v-if="!loading && permisos?.listar"
                     class="ajuste-container"
                 >
                     <div class="ajuste-header">
@@ -45,7 +62,10 @@
                         </div>
                     </div>
 
-                    <div class="ajuste-form">
+                    <div
+                        v-if="permisos.crear"
+                        class="ajuste-form"
+                    >
                         <input
                             type="hidden"
                             v-model="codigoProducto"
@@ -231,6 +251,7 @@
                     <div class="ajuste-content">
                         <div class="d-flex justify-content-end mb-3">
                             <button
+                                v-if="permisos.crear"
                                 class="btn-guardar"
                                 @click="guardarAjuste"
                                 :disabled="
@@ -434,6 +455,7 @@
 
                                         <td>
                                             <button
+                                                v-if="permisos.actualizar"
                                                 class="btn-editar"
                                                 :disabled="ajuste.procesado"
                                                 @click="editarAjuste(ajuste)"
@@ -447,6 +469,7 @@
                                             </button>
 
                                             <button
+                                                v-if="permisos.eliminar"
                                                 class="btn-eliminar"
                                                 :disabled="ajuste.procesado"
                                                 @click="eliminarAjuste(index)"
@@ -454,6 +477,15 @@
                                             >
                                                 <i class="bi bi-trash"></i>
                                             </button>
+
+                                            <span
+                                                v-if="
+                                                    !permisos.actualizar &&
+                                                    !permisos.eliminar
+                                                "
+                                            >
+                                                —
+                                            </span>
                                         </td>
                                     </tr>
 
@@ -490,7 +522,9 @@ import {
     computed,
 } from "vue";
 
-import api from "@/services/api.js";
+import api, {
+    obtenerPermisosPorModulo,
+} from "@/services/api.js";
 import Header from "@/components/HeaderVue.vue";
 import Sidebar from "@/components/Sidebar.vue";
 import router from "@/router";
@@ -509,6 +543,82 @@ export default {
         const loading = ref(false);
         const error = ref(null);
         const usuario = ref(null);
+        const permisos = ref(null);
+
+        const permisoActivo = (valor) => {
+            return (
+                valor === true ||
+                valor === 1 ||
+                valor === "1" ||
+                valor === "true"
+            );
+        };
+
+        const fetchPermisos = async () => {
+            if (
+                permisoActivo(
+                    usuario.value?.es_admin
+                )
+            ) {
+                permisos.value = {
+                    listar: true,
+                    crear: true,
+                    actualizar: true,
+                    eliminar: true,
+                };
+
+                return;
+            }
+
+            try {
+                const respuesta =
+                    await obtenerPermisosPorModulo(
+                        "inventario"
+                    );
+
+                const contenido =
+                    respuesta?.data ??
+                    respuesta ??
+                    {};
+
+                const datos =
+                    contenido?.permisos ??
+                    contenido?.data?.permisos ??
+                    contenido?.data ??
+                    contenido;
+
+                permisos.value = {
+                    listar: permisoActivo(
+                        datos?.listar
+                    ),
+                    crear: permisoActivo(
+                        datos?.crear
+                    ),
+                    actualizar: permisoActivo(
+                        datos?.actualizar
+                    ),
+                    eliminar: permisoActivo(
+                        datos?.eliminar
+                    ),
+                };
+            } catch (err) {
+                console.error(
+                    "Error al obtener los permisos de inventario:",
+                    err
+                );
+
+                permisos.value = {
+                    listar: false,
+                    crear: false,
+                    actualizar: false,
+                    eliminar: false,
+                };
+
+                error.value =
+                    err.response?.data?.message ||
+                    "No fue posible cargar los permisos de inventario.";
+            }
+        };
 
         const codigoProducto = ref("");
         const productoId = ref(null);
@@ -756,6 +866,13 @@ export default {
         };
 
         const buscarProducto = async () => {
+            if (!permisos.value?.crear) {
+                error.value =
+                    "No tienes permiso para registrar ajustes de inventario.";
+
+                return;
+            }
+
             const busqueda =
                 productoBusqueda.value.trim();
 
@@ -890,6 +1007,13 @@ export default {
         });
 
         const agregarAjusteDirecto = () => {
+            if (!permisos.value?.crear) {
+                error.value =
+                    "No tienes permiso para registrar ajustes de inventario.";
+
+                return;
+            }
+
             if (
                 !productoId.value ||
                 !productoBusqueda.value ||
@@ -1239,6 +1363,13 @@ export default {
         };
 
         const guardarAjuste = async () => {
+            if (!permisos.value?.crear) {
+                error.value =
+                    "No tienes permiso para guardar ajustes de inventario.";
+
+                return;
+            }
+
             if (
                 !usuario.value ||
                 !usuario.value.id
@@ -1409,6 +1540,13 @@ export default {
         const eliminarAjuste = (
             index
         ) => {
+            if (!permisos.value?.eliminar) {
+                error.value =
+                    "No tienes permiso para eliminar ajustes de la tabla.";
+
+                return;
+            }
+
             if (
                 ajustes.value[index]
                     ?.procesado
@@ -1428,6 +1566,13 @@ export default {
         const editarAjuste = (
             ajuste
         ) => {
+            if (!permisos.value?.actualizar) {
+                error.value =
+                    "No tienes permiso para editar ajustes de inventario.";
+
+                return;
+            }
+
             if (ajuste.procesado) {
                 error.value =
                     "Este ajuste ya fue guardado y no puede editarse.";
@@ -1602,8 +1747,18 @@ export default {
             };
         };
 
-        onMounted(() => {
+        onMounted(async () => {
             checkSesion();
+
+            if (!usuario.value) {
+                return;
+            }
+
+            await fetchPermisos();
+
+            if (!permisos.value?.listar) {
+                return;
+            }
 
             const ajustesGuardados =
                 localStorage.getItem(
@@ -1667,6 +1822,7 @@ export default {
             loading,
             error,
             usuario,
+            permisos,
 
             codigoProducto,
             productoId,

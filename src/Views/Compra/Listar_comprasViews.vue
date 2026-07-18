@@ -12,434 +12,576 @@
       <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
       <main class="container-fluid pt-5 pt-lg-4 mt-4">
-        <!-- ENCABEZADO -->
+        <!-- CARGANDO PERMISOS -->
         <div
-          class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4"
+          v-if="!permisos"
+          class="text-center py-5"
         >
-          <div>
-            <h2 class="fw-bold mb-0">
-              Compras
-            </h2>
-
-            <small class="text-muted">
-              Historial de compras registradas
-            </small>
-          </div>
-
-          <router-link
-            to="/compras"
-            class="btn btn-primary"
-          >
-            <i class="bi bi-plus-circle me-2"></i>
-            Nueva Compra
-          </router-link>
+          <div
+            class="spinner-border text-primary"
+            role="status"
+          ></div>
         </div>
 
-        <!-- ERROR -->
+        <!-- SIN PERMISO PARA LISTAR -->
         <div
-          v-if="error"
-          class="alert alert-danger alert-dismissible fade show"
-          role="alert"
-        >
-          {{ error }}
-
-          <button
-            type="button"
-            class="btn-close"
-            aria-label="Cerrar"
-            @click="error = ''"
-          ></button>
-        </div>
-
-        <!-- MENSAJE SIN RESULTADOS -->
-        <div
-          v-if="mensaje && !loading && comprasFiltradas.length === 0"
-          class="alert alert-warning alert-dismissible fade show"
-          role="alert"
-        >
-          {{ mensaje }}
-
-          <button
-            type="button"
-            class="btn-close"
-            aria-label="Cerrar"
-            @click="mensaje = ''"
-          ></button>
-        </div>
-
-        
-        <!-- FILTROS -->
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-body">
-    <div class="row g-3 align-items-end">
-      <!-- FECHA INICIAL -->
-      <div class="col-12 col-md-5">
-        <label
-          for="fecha-inicial"
-          class="form-label fw-semibold"
-        >
-          Fecha Inicial
-        </label>
-
-        <input
-          id="fecha-inicial"
-          v-model="filtroFechaInicio"
-          type="date"
-          class="form-control"
-          :max="filtroFechaFin || undefined"
-          :disabled="loading"
-        />
-      </div>
-
-      <!-- FECHA FINAL -->
-      <div class="col-12 col-md-5">
-        <label
-          for="fecha-final"
-          class="form-label fw-semibold"
-        >
-          Fecha Final
-        </label>
-
-        <input
-          id="fecha-final"
-          v-model="filtroFechaFin"
-          type="date"
-          class="form-control"
-          :min="filtroFechaInicio || undefined"
-          :disabled="loading"
-        />
-      </div>
-
-      <!-- BOTÓN LIMPIAR -->
-      <div class="col-12 col-md-2">
-        <button
-          type="button"
-          class="btn btn-outline-secondary w-100"
-          :disabled="
-            loading ||
-            (!filtroFechaInicio && !filtroFechaFin)
+          v-if="
+            permisos &&
+            !permisos?.listar
           "
-          @click="limpiarFiltros"
+          class="alert alert-warning text-center"
         >
-          <i class="bi bi-arrow-counterclockwise me-2"></i>
-          Limpiar todo
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+          No tienes permiso para ver las compras.
+        </div>
 
-        <!-- TABLA -->
-        <div class="card shadow-sm border-0">
+        <!-- CONTENIDO DEL HISTORIAL -->
+        <div v-if="permisos?.listar">
+          <!-- ENCABEZADO -->
           <div
-            class="card-header bg-white d-flex justify-content-between align-items-center"
+            class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4"
           >
-            <h5 class="mb-0">
-              Listado de Compras
-            </h5>
+            <div>
+              <h2 class="fw-bold mb-0">
+                Compras
+              </h2>
 
-            
-          </div>
-
-          <!-- CARGANDO -->
-          <div
-            v-if="loading"
-            class="text-center py-5"
-          >
-            <div
-              class="spinner-border text-primary"
-              role="status"
-            >
-              <span class="visually-hidden">
-                Cargando...
-              </span>
+              <small class="text-muted">
+                Historial de compras registradas
+              </small>
             </div>
 
-            <p class="text-muted mt-3 mb-0">
-              Cargando compras...
-            </p>
+            <!-- PERMISO CREAR -->
+            <router-link
+              v-if="permisos?.crear"
+              to="/compras"
+              class="btn btn-primary"
+            >
+              <i class="bi bi-plus-circle me-2"></i>
+              Nueva Compra
+            </router-link>
           </div>
 
-          <!-- CONTENIDO DE TABLA -->
+          <!-- ERROR -->
           <div
-            v-else
-            class="table-responsive"
+            v-if="error"
+            class="alert alert-danger alert-dismissible fade show"
+            role="alert"
           >
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Folio</th>
-                  <th>Fecha</th>
-                  <th>Proveedor</th>
-                  <th>Usuario</th>
-                  <th>Total</th>
-                  <th width="180">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
+            {{ error }}
 
-              <tbody>
-                <tr
-                  v-for="compra in comprasFiltradas"
-                  :key="compra.id"
-                >
-                  <td>
-                    {{ compra.folio || "Sin folio" }}
-                  </td>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Cerrar"
+              @click="error = ''"
+            ></button>
+          </div>
 
-                  <td>
-                    {{ compra.fecha_compra || "Sin fecha" }}
-                  </td>
+          <!-- MENSAJE SIN RESULTADOS -->
+          <div
+            v-if="
+              mensaje &&
+              !loading &&
+              comprasFiltradas.length === 0
+            "
+            class="alert alert-warning alert-dismissible fade show"
+            role="alert"
+          >
+            {{ mensaje }}
 
-                  <td>
-                    {{ compra.provedor?.nombre || "Sin proveedor" }}
-                  </td>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Cerrar"
+              @click="mensaje = ''"
+            ></button>
+          </div>
 
-                  <td>
-                    {{ compra.user?.name || "Sin usuario" }}
-                  </td>
-
-                  <td class="fw-semibold">
-                    $ {{ formatoMoneda(compra.total) }}
-                  </td>
-
-                  <td>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-primary me-1"
-                      title="Ver detalle"
-                      @click="verCompra(compra.id)"
-                    >
-                      <i class="bi bi-eye"></i>
-                    </button>
-
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-success me-1"
-                      title="Imprimir compra"
-                      @click="imprimirCompra(compra.folio)"
-                    >
-                      <i class="bi bi-printer"></i>
-                    </button>
-
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-danger"
-                      title="Eliminar compra"
-                    >
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- SIN RESULTADOS -->
-                <tr v-if="comprasFiltradas.length === 0">
-                  <td
-                    colspan="6"
-                    class="text-center py-5 text-muted"
+          <!-- FILTROS -->
+          <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+              <div class="row g-3 align-items-end">
+                <!-- FECHA INICIAL -->
+                <div class="col-12 col-md-5">
+                  <label
+                    for="fecha-inicial"
+                    class="form-label fw-semibold"
                   >
-                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                    Fecha Inicial
+                  </label>
 
-                    No se encontraron compras en las fechas seleccionadas.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- MODAL DETALLE COMPRA -->
-        <div
-          v-if="modalDetalle"
-          class="modal fade show d-block"
-          tabindex="-1"
-          role="dialog"
-          aria-modal="true"
-          style="background: rgba(0, 0, 0, 0.55)"
-          @click.self="cerrarModal"
-        >
-          <div
-            class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
-            role="document"
-          >
-            <div class="modal-content border-0 shadow-lg">
-              <!-- HEADER MODAL -->
-              <div class="modal-header">
-                <div>
-                  <small class="text-muted">
-                    Entrada de inventario
-                  </small>
-
-                  <h5 class="modal-title mb-0">
-                    Detalle Compra -
-                    {{ compraDetalle?.folio || "Sin folio" }}
-                  </h5>
+                  <input
+                    id="fecha-inicial"
+                    v-model="filtroFechaInicio"
+                    type="date"
+                    class="form-control"
+                    :max="
+                      filtroFechaFin ||
+                      undefined
+                    "
+                    :disabled="loading"
+                  />
                 </div>
 
-                <button
-                  type="button"
-                  class="btn-close"
-                  aria-label="Cerrar"
-                  @click="cerrarModal"
-                ></button>
+                <!-- FECHA FINAL -->
+                <div class="col-12 col-md-5">
+                  <label
+                    for="fecha-final"
+                    class="form-label fw-semibold"
+                  >
+                    Fecha Final
+                  </label>
+
+                  <input
+                    id="fecha-final"
+                    v-model="filtroFechaFin"
+                    type="date"
+                    class="form-control"
+                    :min="
+                      filtroFechaInicio ||
+                      undefined
+                    "
+                    :disabled="loading"
+                  />
+                </div>
+
+                <!-- BOTÓN LIMPIAR -->
+                <div class="col-12 col-md-2">
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary w-100"
+                    :disabled="
+                      loading ||
+                      (
+                        !filtroFechaInicio &&
+                        !filtroFechaFin
+                      )
+                    "
+                    @click="limpiarFiltros"
+                  >
+                    <i
+                      class="bi bi-arrow-counterclockwise me-2"
+                    ></i>
+
+                    Limpiar todo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABLA -->
+          <div class="card shadow-sm border-0">
+            <div
+              class="card-header bg-white d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0">
+                Listado de Compras
+              </h5>
+            </div>
+
+            <!-- CARGANDO -->
+            <div
+              v-if="loading"
+              class="text-center py-5"
+            >
+              <div
+                class="spinner-border text-primary"
+                role="status"
+              >
+                <span class="visually-hidden">
+                  Cargando...
+                </span>
               </div>
 
-              <!-- BODY MODAL -->
-              <div class="modal-body">
-                <!-- INFORMACIÓN GENERAL -->
-                <div class="row g-3 mb-4">
-                  <div class="col-12 col-md-4">
-                    <div class="border rounded p-3 h-100">
-                      <small class="text-muted d-block mb-1">
-                        Proveedor
-                      </small>
+              <p class="text-muted mt-3 mb-0">
+                Cargando compras...
+              </p>
+            </div>
 
-                      <strong>
-                        {{
-                          compraDetalle?.provedor?.nombre ||
-                          "Sin proveedor"
-                        }}
-                      </strong>
-                    </div>
-                  </div>
+            <!-- CONTENIDO DE TABLA -->
+            <div
+              v-else
+              class="table-responsive"
+            >
+              <table
+                class="table table-hover align-middle mb-0"
+              >
+                <thead class="table-light">
+                  <tr>
+                    <th>Folio</th>
+                    <th>Fecha</th>
+                    <th>Proveedor</th>
+                    <th>Usuario</th>
+                    <th>Total</th>
 
-                  <div class="col-12 col-md-4">
-                    <div class="border rounded p-3 h-100">
-                      <small class="text-muted d-block mb-1">
-                        Usuario
-                      </small>
+                    <th width="180">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
 
-                      <strong>
-                        {{
-                          compraDetalle?.user?.name ||
-                          "Sin usuario"
-                        }}
-                      </strong>
-                    </div>
-                  </div>
+                <tbody>
+                  <tr
+                    v-for="compra in comprasFiltradas"
+                    :key="compra.id"
+                  >
+                    <td>
+                      {{
+                        compra.folio ||
+                        "Sin folio"
+                      }}
+                    </td>
 
-                  <div class="col-12 col-md-4">
-                    <div class="border rounded p-3 h-100">
-                      <small class="text-muted d-block mb-1">
-                        Fecha
-                      </small>
+                    <td>
+                      {{
+                        compra.fecha_compra ||
+                        "Sin fecha"
+                      }}
+                    </td>
 
-                      <strong>
-                        {{
-                          compraDetalle?.fecha_compra ||
-                          "Sin fecha"
-                        }}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
+                    <td>
+                      {{
+                        compra.provedor?.nombre ||
+                        "Sin proveedor"
+                      }}
+                    </td>
 
-                <!-- TABLA DETALLE -->
-                <div class="table-responsive">
-                  <table class="table table-bordered align-middle">
-                    <thead class="table-light">
-                      <tr>
-                        <th>Producto</th>
-                        <th>Cantidad</th>
-                        <th>Precio Compra</th>
-                        <th>Subtotal</th>
-                        <th>Precio Venta</th>
-                        <th>Ganancia</th>
-                      </tr>
-                    </thead>
+                    <td>
+                      {{
+                        compra.user?.name ||
+                        "Sin usuario"
+                      }}
+                    </td>
 
-                    <tbody>
-                      <tr
-                        v-for="item in compraDetalle?.detalle_compras || []"
-                        :key="item.id"
-                      >
-                        <td>
-                          {{ item.producto?.nombre || "Sin producto" }}
-                        </td>
-
-                        <td>
-                          {{ item.cantidad }}
-                        </td>
-
-                        <td>
-                          $ {{ formatoMoneda(item.precio_compra) }}
-                        </td>
-
-                        <td>
-                          $ {{ formatoMoneda(item.subtotal) }}
-                        </td>
-
-                        <td>
-                          $ {{
-                            formatoMoneda(
-                              item.producto?.precio_unitario
-                            )
-                          }}
-                        </td>
-
-                        <td>
-                          $ {{
-                            formatoMoneda(
-                              item.producto?.ganancia
-                            )
-                          }}
-                        </td>
-                      </tr>
-
-                      <tr
-                        v-if="
-                          !compraDetalle?.detalle_compras ||
-                          compraDetalle.detalle_compras.length === 0
-                        "
-                      >
-                        <td
-                          colspan="6"
-                          class="text-center py-4 text-muted"
-                        >
-                          No hay productos en esta compra.
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <!-- TOTAL -->
-                <div class="d-flex justify-content-end mt-4">
-                  <div class="text-end">
-                    <small class="text-muted d-block">
-                      Total de la compra
-                    </small>
-
-                    <h4 class="fw-bold mb-0">
-                      $ {{
+                    <td class="fw-semibold">
+                      $
+                      {{
                         formatoMoneda(
-                          compraDetalle?.total || 0
+                          compra.total
                         )
                       }}
-                    </h4>
+                    </td>
+
+                    <td>
+                      <!-- VER DETALLE -->
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary me-1"
+                        title="Ver detalle"
+                        @click="
+                          verCompra(compra.id)
+                        "
+                      >
+                        <i class="bi bi-eye"></i>
+                      </button>
+
+                      <!-- IMPRIMIR -->
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-success me-1"
+                        title="Imprimir compra"
+                        @click="
+                          imprimirCompra(
+                            compra.folio
+                          )
+                        "
+                      >
+                        <i class="bi bi-printer"></i>
+                      </button>
+
+                      <!-- PERMISO ELIMINAR -->
+                      <button
+                        v-if="permisos?.eliminar"
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        title="Eliminar compra"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- SIN RESULTADOS -->
+                  <tr
+                    v-if="
+                      comprasFiltradas.length === 0
+                    "
+                  >
+                    <td
+                      colspan="6"
+                      class="text-center py-5 text-muted"
+                    >
+                      <i
+                        class="bi bi-inbox fs-2 d-block mb-2"
+                      ></i>
+
+                      No se encontraron compras en las fechas seleccionadas.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- MODAL DETALLE COMPRA -->
+          <div
+            v-if="modalDetalle"
+            class="modal fade show d-block"
+            tabindex="-1"
+            role="dialog"
+            aria-modal="true"
+            style="
+              background:
+                rgba(0, 0, 0, 0.55)
+            "
+            @click.self="cerrarModal"
+          >
+            <div
+              class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
+              role="document"
+            >
+              <div
+                class="modal-content border-0 shadow-lg"
+              >
+                <!-- HEADER MODAL -->
+                <div class="modal-header">
+                  <div>
+                    <small class="text-muted">
+                      Entrada de inventario
+                    </small>
+
+                    <h5 class="modal-title mb-0">
+                      Detalle Compra -
+                      {{
+                        compraDetalle?.folio ||
+                        "Sin folio"
+                      }}
+                    </h5>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="btn-close"
+                    aria-label="Cerrar"
+                    @click="cerrarModal"
+                  ></button>
+                </div>
+
+                <!-- BODY MODAL -->
+                <div class="modal-body">
+                  <!-- INFORMACIÓN GENERAL -->
+                  <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-4">
+                      <div
+                        class="border rounded p-3 h-100"
+                      >
+                        <small
+                          class="text-muted d-block mb-1"
+                        >
+                          Proveedor
+                        </small>
+
+                        <strong>
+                          {{
+                            compraDetalle
+                              ?.provedor
+                              ?.nombre ||
+                            "Sin proveedor"
+                          }}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                      <div
+                        class="border rounded p-3 h-100"
+                      >
+                        <small
+                          class="text-muted d-block mb-1"
+                        >
+                          Usuario
+                        </small>
+
+                        <strong>
+                          {{
+                            compraDetalle
+                              ?.user
+                              ?.name ||
+                            "Sin usuario"
+                          }}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                      <div
+                        class="border rounded p-3 h-100"
+                      >
+                        <small
+                          class="text-muted d-block mb-1"
+                        >
+                          Fecha
+                        </small>
+
+                        <strong>
+                          {{
+                            compraDetalle
+                              ?.fecha_compra ||
+                            "Sin fecha"
+                          }}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- TABLA DETALLE -->
+                  <div class="table-responsive">
+                    <table
+                      class="table table-bordered align-middle"
+                    >
+                      <thead class="table-light">
+                        <tr>
+                          <th>Producto</th>
+                          <th>Cantidad</th>
+                          <th>Precio Compra</th>
+                          <th>Subtotal</th>
+                          <th>Precio Venta</th>
+                          <th>Ganancia</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        <tr
+                          v-for="
+                            item in
+                              compraDetalle
+                                ?.detalle_compras ||
+                              []
+                          "
+                          :key="item.id"
+                        >
+                          <td>
+                            {{
+                              item.producto
+                                ?.nombre ||
+                              "Sin producto"
+                            }}
+                          </td>
+
+                          <td>
+                            {{ item.cantidad }}
+                          </td>
+
+                          <td>
+                            $
+                            {{
+                              formatoMoneda(
+                                item.precio_compra
+                              )
+                            }}
+                          </td>
+
+                          <td>
+                            $
+                            {{
+                              formatoMoneda(
+                                item.subtotal
+                              )
+                            }}
+                          </td>
+
+                          <td>
+                            $
+                            {{
+                              formatoMoneda(
+                                item.producto
+                                  ?.precio_unitario
+                              )
+                            }}
+                          </td>
+
+                          <td>
+                            $
+                            {{
+                              formatoMoneda(
+                                item.producto
+                                  ?.ganancia
+                              )
+                            }}
+                          </td>
+                        </tr>
+
+                        <tr
+                          v-if="
+                            !compraDetalle
+                              ?.detalle_compras ||
+                            compraDetalle
+                              .detalle_compras
+                              .length === 0
+                          "
+                        >
+                          <td
+                            colspan="6"
+                            class="text-center py-4 text-muted"
+                          >
+                            No hay productos en esta compra.
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- TOTAL -->
+                  <div
+                    class="d-flex justify-content-end mt-4"
+                  >
+                    <div class="text-end">
+                      <small
+                        class="text-muted d-block"
+                      >
+                        Total de la compra
+                      </small>
+
+                      <h4 class="fw-bold mb-0">
+                        $
+                        {{
+                          formatoMoneda(
+                            compraDetalle?.total ||
+                            0
+                          )
+                        }}
+                      </h4>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- FOOTER MODAL -->
-              <div class="modal-footer">
-                <button
-                  type="button"
-                  class="btn btn-secondary"
-                  @click="cerrarModal"
-                >
-                  Cerrar
-                </button>
+                <!-- FOOTER MODAL -->
+                <div class="modal-footer">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="cerrarModal"
+                  >
+                    Cerrar
+                  </button>
 
-                <button
-                  type="button"
-                  class="btn btn-success"
-                  @click="imprimirCompra(compraDetalle?.folio)"
-                >
-                  <i class="bi bi-printer me-2"></i>
-                  Imprimir
-                </button>
+                  <button
+                    type="button"
+                    class="btn btn-success"
+                    @click="
+                      imprimirCompra(
+                        compraDetalle?.folio
+                      )
+                    "
+                  >
+                    <i
+                      class="bi bi-printer me-2"
+                    ></i>
+
+                    Imprimir
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -456,11 +598,18 @@
   </div>
 </template>
 
-
-
 <script>
-import { ref, onMounted, computed, watch } from "vue";
-import api from "@/services/api.js";
+import {
+  ref,
+  onMounted,
+  computed,
+  watch
+} from "vue";
+
+import api, {
+  obtenerPermisosPorModulo
+} from "@/services/api.js";
+
 import Header from "@/components/HeaderVue.vue";
 import Sidebar from "@/components/Sidebar.vue";
 
@@ -469,84 +618,166 @@ export default {
 
   components: {
     Header,
-    Sidebar,
+    Sidebar
   },
 
   setup() {
     const sidebarOpen = ref(true);
+
     const compras = ref([]);
     const loading = ref(false);
     const mensaje = ref("");
     const error = ref("");
 
-    // =========================
-    // MODAL DETALLE
-    // =========================
+    /*
+     * null significa que los permisos aún no cargan.
+     */
+    const permisos = ref(null);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permisos
+    |--------------------------------------------------------------------------
+    */
+    const permisoActivo = (valor) => {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === "1" ||
+        valor === "true"
+      );
+    };
+
+    const fetchPermisos = async () => {
+      try {
+        const respuesta =
+          await obtenerPermisosPorModulo(
+            "listar_compras"
+          );
+
+        permisos.value = {
+          listar: permisoActivo(
+            respuesta?.listar
+          ),
+
+          crear: permisoActivo(
+            respuesta?.crear
+          ),
+
+          actualizar: permisoActivo(
+            respuesta?.actualizar
+          ),
+
+          eliminar: permisoActivo(
+            respuesta?.eliminar
+          )
+        };
+      } catch (err) {
+        permisos.value = {
+          listar: false,
+          crear: false,
+          actualizar: false,
+          eliminar: false
+        };
+
+        error.value =
+          "No fue posible cargar los permisos de compras.";
+      }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Modal detalle
+    |--------------------------------------------------------------------------
+    */
     const modalDetalle = ref(false);
     const compraDetalle = ref(null);
 
-    // =========================
-    // FILTROS POR FECHA
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Filtros por fecha
+    |--------------------------------------------------------------------------
+    */
     const filtroFechaInicio = ref("");
     const filtroFechaFin = ref("");
 
-    // =========================
-    // FORMATO MONEDA
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Formato moneda
+    |--------------------------------------------------------------------------
+    */
     const formatoMoneda = (valor) => {
-      return Number(valor || 0).toLocaleString("es-MX", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
+      return Number(
+        valor || 0
+      ).toLocaleString(
+        "es-MX",
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }
+      );
     };
 
-    // =========================
-    // CARGAR COMPRAS
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar compras
+    |--------------------------------------------------------------------------
+    */
     const cargarCompras = async () => {
+      if (!permisos.value?.listar) {
+        compras.value = [];
+        return;
+      }
+
       error.value = "";
       mensaje.value = "";
 
-      // Validar rango de fechas en el frontend
       if (
         filtroFechaInicio.value &&
         filtroFechaFin.value &&
-        filtroFechaFin.value < filtroFechaInicio.value
+        filtroFechaFin.value <
+          filtroFechaInicio.value
       ) {
         compras.value = [];
+
         error.value =
           "La fecha final no puede ser menor que la fecha inicial.";
+
         return;
       }
 
       loading.value = true;
 
       try {
-        const response = await api.get("/historial", {
-          params: {
-            desde: filtroFechaInicio.value || undefined,
-            hasta: filtroFechaFin.value || undefined,
-          },
-        });
+        const response = await api.get(
+          "/historial",
+          {
+            params: {
+              desde:
+                filtroFechaInicio.value ||
+                undefined,
 
-        /*
-         * Soporta estas dos respuestas:
-         *
-         * 1. { message: "...", compras: [...] }
-         * 2. [...]
-         */
-        const resultado = Array.isArray(response.data)
-          ? response.data
-          : response.data.compras || [];
+              hasta:
+                filtroFechaFin.value ||
+                undefined
+            }
+          }
+        );
+
+        const resultado =
+          Array.isArray(response.data)
+            ? response.data
+            : response.data?.compras || [];
 
         compras.value = resultado;
 
         mensaje.value =
           response.data?.message ||
-          (resultado.length === 0
-            ? "No se encontraron compras en las fechas seleccionadas."
-            : "");
+          (
+            resultado.length === 0
+              ? "No se encontraron compras en las fechas seleccionadas."
+              : ""
+          );
       } catch (err) {
         compras.value = [];
 
@@ -554,37 +785,60 @@ export default {
           err.response?.data?.message ||
           "No se pudieron cargar las compras.";
 
-        console.error("Error al cargar compras:", err);
+        console.error(
+          "Error al cargar compras:",
+          err
+        );
       } finally {
         loading.value = false;
       }
     };
 
-    // =========================
-    // COMPRAS PARA LA TABLA
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Compras para la tabla
+    |--------------------------------------------------------------------------
+    */
     const comprasFiltradas = computed(() => {
       return compras.value;
     });
 
-    // =========================
-    // VER DETALLE DE COMPRA
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Ver detalle
+    |--------------------------------------------------------------------------
+    */
     const verCompra = async (id) => {
+      if (!permisos.value?.listar) {
+        error.value =
+          "No tienes permiso para ver las compras.";
+
+        return;
+      }
+
       if (!id) {
-        error.value = "No se encontró el identificador de la compra.";
+        error.value =
+          "No se encontró el identificador de la compra.";
+
         return;
       }
 
       try {
         error.value = "";
 
-        const response = await api.get(`/compras/id/${id}`);
+        const response = await api.get(
+          `/compras/id/${id}`
+        );
 
-        compraDetalle.value = response.data;
+        compraDetalle.value =
+          response.data;
+
         modalDetalle.value = true;
       } catch (err) {
-        console.error("Error al obtener compra:", err);
+        console.error(
+          "Error al obtener compra:",
+          err
+        );
 
         error.value =
           err.response?.data?.message ||
@@ -592,61 +846,101 @@ export default {
       }
     };
 
-    // =========================
-    // CERRAR MODAL
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Cerrar modal
+    |--------------------------------------------------------------------------
+    */
     const cerrarModal = () => {
       modalDetalle.value = false;
       compraDetalle.value = null;
     };
 
-    // =========================
-    // IMPRIMIR PDF
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Imprimir compra
+    |--------------------------------------------------------------------------
+    */
     const imprimirCompra = (folio) => {
-      if (!folio) {
-        error.value = "La compra no tiene un folio válido.";
+      if (!permisos.value?.listar) {
+        error.value =
+          "No tienes permiso para ver las compras.";
+
         return;
       }
 
-      const base = api.defaults.baseURL.replace(/\/$/, "");
+      if (!folio) {
+        error.value =
+          "La compra no tiene un folio válido.";
 
-      window.open(`${base}/compras/pdf/${folio}`, "_blank");
+        return;
+      }
+
+      const base =
+        api.defaults.baseURL.replace(
+          /\/$/,
+          ""
+        );
+
+      window.open(
+        `${base}/compras/pdf/${folio}`,
+        "_blank"
+      );
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Limpiar filtros
+    |--------------------------------------------------------------------------
+    */
     const limpiarFiltros = () => {
-  filtroFechaInicio.value = "";
-  filtroFechaFin.value = "";
-  mensaje.value = "";
-  error.value = "";
+      filtroFechaInicio.value = "";
+      filtroFechaFin.value = "";
+      mensaje.value = "";
+      error.value = "";
 
-  cargarCompras();
-};
+      cargarCompras();
+    };
 
-    // =========================
-    // ESCUCHAR CAMBIOS DE FECHA
-    // =========================
+    /*
+    |--------------------------------------------------------------------------
+    | Escuchar cambios de fecha
+    |--------------------------------------------------------------------------
+    */
     watch(
-      [filtroFechaInicio, filtroFechaFin],
+      [
+        filtroFechaInicio,
+        filtroFechaFin
+      ],
       () => {
         cargarCompras();
       }
     );
 
-    // =========================
-    // INICIALIZAR
-    // =========================
-    onMounted(() => {
-      cargarCompras();
+    /*
+    |--------------------------------------------------------------------------
+    | Inicialización
+    |--------------------------------------------------------------------------
+    */
+    onMounted(async () => {
+      await fetchPermisos();
+
+      if (permisos.value?.listar) {
+        await cargarCompras();
+      }
     });
 
     return {
       sidebarOpen,
+
       compras,
       comprasFiltradas,
+
       loading,
       mensaje,
       error,
+
+      permisos,
 
       modalDetalle,
       compraDetalle,
@@ -659,12 +953,11 @@ export default {
       verCompra,
       cerrarModal,
       imprimirCompra,
-      limpiarFiltros 
+      limpiarFiltros
     };
-  },
+  }
 };
 </script>
-
 
 <style scoped>
 .main-content {

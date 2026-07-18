@@ -1,4 +1,4 @@
-<!-- src/Views/Usuarios/UsuariosViews.vue -->
+
 <template>
     <div class="d-flex flex-column flex-lg-row min-vh-100 bg-light">
         <Sidebar
@@ -14,7 +14,19 @@
                     <div class="spinner-border text-primary" role="status"></div>
                 </div>
 
-                <div v-if="error" class="alert alert-danger alert-dismissible fade show">
+                <div
+                    v-if="!loading && permisos !== null && !permisos.listar"
+                    class="alert alert-warning"
+                    role="alert"
+                >
+                    <i class="bi bi-shield-lock me-2"></i>
+                    No tienes permiso para ver el reporte de ventas.
+                </div>
+
+                <div
+                    v-if="!loading && permisos !== null && permisos.listar && error"
+                    class="alert alert-danger alert-dismissible fade show"
+                >
                     {{ error }}
                     <button
                         type="button"
@@ -23,7 +35,10 @@
                     ></button>
                 </div>
 
-                <div v-if="!loading" class="usuarios-container">
+                <div
+                    v-if="!loading && permisos !== null && permisos.listar"
+                    class="usuarios-container"
+                >
                     <div class="usuarios-header">
                         <div>
                             <h2>Reportes de venta</h2>
@@ -181,7 +196,7 @@
 </template>
 <script>
 import { ref, onMounted, nextTick } from 'vue';
-import api from '@/services/api.js';
+import api, { obtenerPermisosPorModulo } from '@/services/api.js';
 import Header from '@/components/HeaderVue.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import { useDataTable } from '@/composables/useDataTable.js';
@@ -196,11 +211,12 @@ export default {
 
     setup() {
         const sidebarOpen = ref(false);
+        const permisos = ref(null);
 
         const ventas = ref([]);
         const usuarios = ref([]);
 
-        const loading = ref(false);
+        const loading = ref(true);
         const error = ref(null);
 
         const desde = ref('');
@@ -209,6 +225,42 @@ export default {
 
         // Select de exportación
         const tipoExportacion = ref('excel');
+
+        const permisoActivo = (valor) => {
+            return (
+                valor === true ||
+                valor === 1 ||
+                valor === '1' ||
+                valor === 'true'
+            );
+        };
+
+        const fetchPermisos = async () => {
+            try {
+                const respuesta = await obtenerPermisosPorModulo('reporte_venta');
+
+                const datosRespuesta =
+                    respuesta?.data?.data ??
+                    respuesta?.data ??
+                    respuesta ??
+                    {};
+
+                const datos = datosRespuesta?.permisos ?? datosRespuesta;
+
+                permisos.value = {
+                    listar: permisoActivo(datos?.listar),
+                };
+            } catch (e) {
+                console.error(
+                    'Error al obtener permisos del reporte de ventas:',
+                    e
+                );
+
+                permisos.value = {
+                    listar: false,
+                };
+            }
+        };
 
         const { tableRef, initDataTable } = useDataTable(ventas);
 
@@ -222,6 +274,11 @@ export default {
         };
 
         const cargarVentas = async () => {
+            if (!permisos.value?.listar) {
+                loading.value = false;
+                return;
+            }
+
             loading.value = true;
             error.value = null;
 
@@ -292,6 +349,10 @@ export default {
         };
 
         const exportarReporte = () => {
+            if (!permisos.value?.listar) {
+                return;
+            }
+
             if (tipoExportacion.value === 'excel') {
                 exportarExcel();
                 return;
@@ -303,12 +364,20 @@ export default {
         };
 
         onMounted(async () => {
+            await fetchPermisos();
+
+            if (!permisos.value?.listar) {
+                loading.value = false;
+                return;
+            }
+
             await cargarUsuarios();
             await cargarVentas();
         });
 
         return {
             sidebarOpen,
+            permisos,
 
             ventas,
             usuarios,

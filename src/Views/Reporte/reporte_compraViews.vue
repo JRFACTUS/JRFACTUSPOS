@@ -22,9 +22,19 @@
                     </p>
                 </div>
 
+                <!-- SIN PERMISO PARA LISTAR -->
+                <div
+                    v-if="!loading && permisos !== null && !permisos.listar"
+                    class="alert alert-warning"
+                    role="alert"
+                >
+                    <i class="bi bi-shield-lock me-2"></i>
+                    No tienes permiso para ver el reporte de compras.
+                </div>
+
                 <!-- ERROR -->
                 <div
-                    v-if="error"
+                    v-if="!loading && permisos !== null && permisos.listar && error"
                     class="alert alert-danger alert-dismissible fade show"
                 >
                     {{ error }}
@@ -36,7 +46,10 @@
                     ></button>
                 </div>
 
-                <div v-if="!loading" class="usuarios-container">
+                <div
+                    v-if="!loading && permisos !== null && permisos.listar"
+                    class="usuarios-container"
+                >
                     <!-- ENCABEZADO -->
                     
                             <div class="usuarios-header">
@@ -239,7 +252,7 @@
 
 <script>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import api from '@/services/api.js';
+import api, { obtenerPermisosPorModulo } from '@/services/api.js';
 import Header from '@/components/HeaderVue.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import { useDataTable } from '@/composables/useDataTable.js';
@@ -254,16 +267,53 @@ export default {
 
     setup() {
         const sidebarOpen = ref(false);
+        const permisos = ref(null);
 
         const compras = ref([]);
 
-        const loading = ref(false);
+        const loading = ref(true);
         const error = ref(null);
 
         const desde = ref('');
         const hasta = ref('');
 
         const tipoReporteCompra = ref('todo');
+
+        const permisoActivo = (valor) => {
+            return (
+                valor === true ||
+                valor === 1 ||
+                valor === '1' ||
+                valor === 'true'
+            );
+        };
+
+        const fetchPermisos = async () => {
+            try {
+                const respuesta = await obtenerPermisosPorModulo('reporte_compra');
+
+                const datosRespuesta =
+                    respuesta?.data?.data ??
+                    respuesta?.data ??
+                    respuesta ??
+                    {};
+
+                const datos = datosRespuesta?.permisos ?? datosRespuesta;
+
+                permisos.value = {
+                    listar: permisoActivo(datos?.listar),
+                };
+            } catch (e) {
+                console.error(
+                    'Error al obtener permisos del reporte de compras:',
+                    e
+                );
+
+                permisos.value = {
+                    listar: false,
+                };
+            }
+        };
 
         const { tableRef, initDataTable } = useDataTable(compras);
 
@@ -484,6 +534,11 @@ export default {
         |--------------------------------------------------------------------------
         */
         const cargarCompras = async () => {
+            if (!permisos.value?.listar) {
+                loading.value = false;
+                return;
+            }
+
             if (!validarFechas()) {
                 return;
             }
@@ -552,6 +607,10 @@ export default {
         |--------------------------------------------------------------------------
         */
         const exportarPDFCompras = () => {
+            if (!permisos.value?.listar) {
+                return;
+            }
+
             if (!validarFechas()) {
                 return;
             }
@@ -583,11 +642,19 @@ export default {
         |--------------------------------------------------------------------------
         */
         onMounted(async () => {
+            await fetchPermisos();
+
+            if (!permisos.value?.listar) {
+                loading.value = false;
+                return;
+            }
+
             await cargarCompras();
         });
 
         return {
             sidebarOpen,
+            permisos,
 
             compras,
 

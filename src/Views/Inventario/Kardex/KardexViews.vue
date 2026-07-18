@@ -9,8 +9,17 @@
 
 
       <main class="container-fluid p-4">
+        <!-- CARGANDO PERMISOS -->
+        <div v-if="loadingPermisos" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">
+              Cargando...
+            </span>
+          </div>
+        </div>
+
         <!-- CARGA INICIAL -->
-        <div v-if="loading && kardex.length === 0" class="text-center py-5">
+        <div v-else-if="loading && kardex.length === 0" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">
               Cargando...
@@ -22,8 +31,18 @@
           </p>
         </div>
 
+        <!-- SIN PERMISO PARA LISTAR -->
+        <div
+          v-else-if="permisos !== null && !permisos.listar"
+          class="alert alert-warning"
+          role="alert"
+        >
+          <i class="bi bi-shield-lock me-2"></i>
+          No tienes permiso para ver el Kardex.
+        </div>
+
         <!-- CONTENIDO -->
-        <div v-else>
+        <div v-else-if="permisos !== null && permisos.listar">
           <!-- ERROR GENERAL -->
           <div v-if="error" class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ error }}
@@ -322,7 +341,7 @@
     </div>
 
     <!-- MODAL DETALLE COMPRA -->
-    <div v-if="modalDetalle" class="modal fade show d-block modal-compra-overlay" tabindex="-1" role="dialog"
+    <div v-if="permisos?.listar && modalDetalle" class="modal fade show d-block modal-compra-overlay" tabindex="-1" role="dialog"
       aria-modal="true" aria-labelledby="titulo-modal-compra" @click.self="cerrarModalCompra">
       <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content border-0 rounded-4 shadow-lg">
@@ -595,6 +614,585 @@ detalle in
     <div v-if="sidebarOpen" class="sidebar-overlay d-lg-none" @click="sidebarOpen = false"></div>
   </div>
 </template>
+
+
+
+<script>
+import {
+  ref,
+  onMounted,
+  computed,
+} from "vue";
+
+import api, { obtenerPermisosPorModulo } from "@/services/api.js";
+import Header from "@/components/HeaderVue.vue";
+import Sidebar from "@/components/Sidebar.vue";
+
+export default {
+  name: "KardexView",
+
+  components: {
+    Header,
+    Sidebar,
+  },
+
+  setup() {
+    /*
+    |--------------------------------------------------------------------------
+    | Estado general
+    |--------------------------------------------------------------------------
+    */
+    const sidebarOpen = ref(false);
+    const loadingPermisos = ref(true);
+    const permisos = ref(null);
+    const kardex = ref([]);
+    const loading = ref(false);
+    const error = ref(null);
+
+    const permisoActivo = (valor) => {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === "1" ||
+        valor === "true"
+      );
+    };
+
+    const fetchPermisos = async () => {
+      try {
+        const respuesta = await obtenerPermisosPorModulo("kardex");
+
+        const datosRespuesta =
+          respuesta?.data?.data ??
+          respuesta?.data ??
+          respuesta ??
+          {};
+
+        const datos = datosRespuesta?.permisos ?? datosRespuesta;
+
+        permisos.value = {
+          listar: permisoActivo(datos?.listar),
+        };
+      } catch (e) {
+        console.error("Error al obtener permisos del Kardex:", e);
+
+        permisos.value = {
+          listar: false,
+        };
+      } finally {
+        loadingPermisos.value = false;
+      }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filtros
+    |--------------------------------------------------------------------------
+    |
+    | busquedaKardex:
+    | Guarda lo que el usuario está escribiendo.
+    |
+    | busquedaAplicada:
+    | Filtra la tabla únicamente después de presionar Buscar.
+    |
+    */
+    const desde = ref("");
+    const hasta = ref("");
+    const busquedaKardex = ref("");
+    const busquedaAplicada = ref("");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Modal detalle de compra
+    |--------------------------------------------------------------------------
+    */
+    const modalDetalle = ref(false);
+    const compraDetalle = ref(null);
+    const loadingDetalle = ref(false);
+    const errorDetalle = ref(null);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filtrar por nombre o código
+    |--------------------------------------------------------------------------
+    |
+    | No utiliza busquedaKardex directamente para evitar que filtre
+    | automáticamente mientras el usuario escribe.
+    |
+    */
+    const kardexFiltrado = computed(() => {
+      const busqueda = busquedaAplicada.value
+        .trim()
+        .toLowerCase();
+
+      if (!busqueda) {
+        return kardex.value;
+      }
+
+      return kardex.value.filter((item) => {
+        const nombre = String(
+          item.producto?.nombre ?? ""
+        ).toLowerCase();
+
+        const codigo = String(
+          item.producto?.codigo_producto ?? ""
+        ).toLowerCase();
+
+        return (
+          nombre.includes(busqueda) ||
+          codigo.includes(busqueda)
+        );
+      });
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Obtener Kardex
+    |--------------------------------------------------------------------------
+    |
+    | aplicarFechas = false:
+    | Carga todos los movimientos.
+    |
+    | aplicarFechas = true:
+    | Envía desde y hasta al backend.
+    |
+    */
+    const obtenerKardex = async (
+      aplicarFechas = false
+    ) => {
+      if (!permisos.value?.listar) {
+        return false;
+      }
+
+      loading.value = true;
+      error.value = null;
+
+      try {
+        const params = aplicarFechas
+          ? {
+            desde: desde.value,
+            hasta: hasta.value,
+          }
+          : {};
+
+        const response = await api.get(
+          "/getkardex",
+          {
+            params,
+          }
+        );
+
+        const registros = Array.isArray(
+          response.data
+        )
+          ? response.data
+          : response.data?.data || [];
+
+        kardex.value = registros.map(
+          (item) => ({
+            ...item,
+
+            movimiento: String(
+              item.movimiento ?? ""
+            ).toLowerCase(),
+
+            accion: String(
+              item.accion ?? ""
+            ).toLowerCase(),
+
+            folio_pago:
+              item.folio_pago ??
+              item.venta?.folio_pago ??
+              null,
+
+            compra_id:
+              item.compra_id ??
+              item.compra?.id ??
+              null,
+          })
+        );
+
+        return true;
+      } catch (e) {
+        error.value =
+          e.response?.data?.message ||
+          "Error al cargar los datos del Kardex.";
+
+        console.error(
+          "Error al cargar el Kardex:",
+          e
+        );
+
+        return false;
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Buscar Kardex
+    |--------------------------------------------------------------------------
+    |
+    | Valida obligatoriamente:
+    | - Fecha desde
+    | - Fecha hasta
+    | - Código o nombre del producto
+    |
+    */
+    const filtrarPorFechas = async () => {
+      error.value = null;
+
+      const producto =
+        busquedaKardex.value.trim();
+
+      if (!desde.value) {
+        error.value =
+          "Selecciona la fecha desde.";
+
+        return;
+      }
+
+      if (!hasta.value) {
+        error.value =
+          "Selecciona la fecha hasta.";
+
+        return;
+      }
+
+      if (!producto) {
+        error.value =
+          "Escribe el código o nombre del producto.";
+
+        return;
+      }
+
+      if (desde.value > hasta.value) {
+        error.value =
+          "La fecha desde no puede ser mayor que la fecha hasta.";
+
+        return;
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Consultar movimientos por fechas
+      |--------------------------------------------------------------------------
+      */
+      const consultaCorrecta =
+        await obtenerKardex(true);
+
+      if (!consultaCorrecta) {
+        return;
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Aplicar producto después de consultar
+      |--------------------------------------------------------------------------
+      */
+      busquedaAplicada.value = producto;
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Limpiar filtros
+    |--------------------------------------------------------------------------
+    */
+    const limpiarFiltroFechas = async () => {
+      desde.value = "";
+      hasta.value = "";
+      busquedaKardex.value = "";
+      busquedaAplicada.value = "";
+      error.value = null;
+
+      await obtenerKardex(false);
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Descargar ticket de venta
+    |--------------------------------------------------------------------------
+    */
+    const descargarTicket = async (
+      folioPago
+    ) => {
+      if (!folioPago) {
+        error.value =
+          "Este movimiento no tiene un folio de venta.";
+
+        return;
+      }
+
+      error.value = null;
+
+      const nuevaPestana = window.open(
+        "",
+        "_blank"
+      );
+
+      if (!nuevaPestana) {
+        error.value =
+          "El navegador bloqueó la nueva pestaña.";
+
+        return;
+      }
+
+      nuevaPestana.document.write(`
+        <div
+          style="
+            font-family: Arial, sans-serif;
+            padding: 30px;
+          "
+        >
+          Generando ticket...
+        </div>
+      `);
+
+      try {
+        const response = await api.get(
+          `/ticked/${encodeURIComponent(
+            folioPago
+          )}`,
+          {
+            responseType: "blob",
+          }
+        );
+
+        const pdfBlob = new Blob(
+          [response.data],
+          {
+            type: "application/pdf",
+          }
+        );
+
+        const pdfUrl =
+          window.URL.createObjectURL(
+            pdfBlob
+          );
+
+        nuevaPestana.location.href =
+          pdfUrl;
+
+        setTimeout(() => {
+          window.URL.revokeObjectURL(
+            pdfUrl
+          );
+        }, 60000);
+      } catch (e) {
+        nuevaPestana.close();
+
+        error.value =
+          e.response?.data?.message ||
+          "Error al abrir el ticket.";
+
+        console.error(
+          "Error al abrir el ticket:",
+          e
+        );
+      }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Formatear fecha
+    |--------------------------------------------------------------------------
+    */
+    const formatearFecha = (fecha) => {
+      if (!fecha) {
+        return "Sin fecha";
+      }
+
+      const fechaConvertida = new Date(
+        fecha
+      );
+
+      if (
+        Number.isNaN(
+          fechaConvertida.getTime()
+        )
+      ) {
+        return "Fecha inválida";
+      }
+
+      return fechaConvertida.toLocaleString(
+        "es-MX",
+        {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }
+      );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Formatear moneda
+    |--------------------------------------------------------------------------
+    */
+    const formatoMoneda = (valor) => {
+      return Number(
+        valor || 0
+      ).toLocaleString("es-MX", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Clases para movimientos
+    |--------------------------------------------------------------------------
+    */
+    const claseFilaMovimiento = (
+      movimiento
+    ) => ({
+      "mov-entrada":
+        movimiento === "entrada",
+
+      "mov-salida":
+        movimiento === "salida",
+    });
+
+    const claseCantidad = (
+      movimiento
+    ) => {
+      return movimiento === "salida"
+        ? "cantidad-negativa"
+        : "cantidad-positiva";
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Identificar ventas y compras
+    |--------------------------------------------------------------------------
+    */
+    const esVenta = (item) => {
+      const accion = String(
+        item.accion ?? ""
+      ).toLowerCase();
+
+      return (
+        item.movimiento === "salida" &&
+        accion.includes("venta")
+      );
+    };
+
+    const esCompra = (item) => {
+      const accion = String(
+        item.accion ?? ""
+      ).toLowerCase();
+
+      return (
+        item.movimiento === "entrada" &&
+        accion.includes("compra")
+      );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ver detalle de compra
+    |--------------------------------------------------------------------------
+    */
+    const verCompra = async (id) => {
+      if (!id) {
+        error.value =
+          "Este movimiento no tiene una compra relacionada.";
+
+        return;
+      }
+
+      modalDetalle.value = true;
+      compraDetalle.value = null;
+      loadingDetalle.value = true;
+      errorDetalle.value = null;
+
+      try {
+        const response = await api.get(
+          `/compras/id/${id}`
+        );
+
+        compraDetalle.value =
+          response.data;
+      } catch (e) {
+        console.error(
+          "Error al obtener la compra:",
+          e
+        );
+
+        errorDetalle.value =
+          e.response?.data?.message ||
+          "No se pudo cargar el detalle de la compra.";
+      } finally {
+        loadingDetalle.value = false;
+      }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cerrar modal
+    |--------------------------------------------------------------------------
+    */
+    const cerrarModalCompra = () => {
+      modalDetalle.value = false;
+      compraDetalle.value = null;
+      errorDetalle.value = null;
+      loadingDetalle.value = false;
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Precargar todo el Kardex
+    |--------------------------------------------------------------------------
+    */
+    onMounted(async () => {
+      await fetchPermisos();
+
+      if (!permisos.value?.listar) return;
+
+      obtenerKardex(false);
+    });
+
+    return {
+      sidebarOpen,
+      loadingPermisos,
+      permisos,
+      kardex,
+      loading,
+      error,
+
+      desde,
+      hasta,
+      busquedaKardex,
+      busquedaAplicada,
+      kardexFiltrado,
+
+      filtrarPorFechas,
+      limpiarFiltroFechas,
+
+      modalDetalle,
+      compraDetalle,
+      loadingDetalle,
+      errorDetalle,
+
+      obtenerKardex,
+      formatearFecha,
+      formatoMoneda,
+      claseFilaMovimiento,
+      claseCantidad,
+
+      descargarTicket,
+      esVenta,
+      esCompra,
+      verCompra,
+      cerrarModalCompra,
+    };
+  },
+};
+</script>
+
 
 <style scoped>
 .modal-compra-overlay {
@@ -1017,532 +1615,3 @@ main {
   }
 }
 </style>
-
-<script>
-import {
-  ref,
-  onMounted,
-  computed,
-} from "vue";
-
-import api from "@/services/api.js";
-import Header from "@/components/HeaderVue.vue";
-import Sidebar from "@/components/Sidebar.vue";
-
-export default {
-  name: "KardexView",
-
-  components: {
-    Header,
-    Sidebar,
-  },
-
-  setup() {
-    /*
-    |--------------------------------------------------------------------------
-    | Estado general
-    |--------------------------------------------------------------------------
-    */
-    const sidebarOpen = ref(false);
-    const kardex = ref([]);
-    const loading = ref(false);
-    const error = ref(null);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Filtros
-    |--------------------------------------------------------------------------
-    |
-    | busquedaKardex:
-    | Guarda lo que el usuario está escribiendo.
-    |
-    | busquedaAplicada:
-    | Filtra la tabla únicamente después de presionar Buscar.
-    |
-    */
-    const desde = ref("");
-    const hasta = ref("");
-    const busquedaKardex = ref("");
-    const busquedaAplicada = ref("");
-
-    /*
-    |--------------------------------------------------------------------------
-    | Modal detalle de compra
-    |--------------------------------------------------------------------------
-    */
-    const modalDetalle = ref(false);
-    const compraDetalle = ref(null);
-    const loadingDetalle = ref(false);
-    const errorDetalle = ref(null);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Filtrar por nombre o código
-    |--------------------------------------------------------------------------
-    |
-    | No utiliza busquedaKardex directamente para evitar que filtre
-    | automáticamente mientras el usuario escribe.
-    |
-    */
-    const kardexFiltrado = computed(() => {
-      const busqueda = busquedaAplicada.value
-        .trim()
-        .toLowerCase();
-
-      if (!busqueda) {
-        return kardex.value;
-      }
-
-      return kardex.value.filter((item) => {
-        const nombre = String(
-          item.producto?.nombre ?? ""
-        ).toLowerCase();
-
-        const codigo = String(
-          item.producto?.codigo_producto ?? ""
-        ).toLowerCase();
-
-        return (
-          nombre.includes(busqueda) ||
-          codigo.includes(busqueda)
-        );
-      });
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener Kardex
-    |--------------------------------------------------------------------------
-    |
-    | aplicarFechas = false:
-    | Carga todos los movimientos.
-    |
-    | aplicarFechas = true:
-    | Envía desde y hasta al backend.
-    |
-    */
-    const obtenerKardex = async (
-      aplicarFechas = false
-    ) => {
-      loading.value = true;
-      error.value = null;
-
-      try {
-        const params = aplicarFechas
-          ? {
-            desde: desde.value,
-            hasta: hasta.value,
-          }
-          : {};
-
-        const response = await api.get(
-          "/getkardex",
-          {
-            params,
-          }
-        );
-
-        const registros = Array.isArray(
-          response.data
-        )
-          ? response.data
-          : response.data?.data || [];
-
-        kardex.value = registros.map(
-          (item) => ({
-            ...item,
-
-            movimiento: String(
-              item.movimiento ?? ""
-            ).toLowerCase(),
-
-            accion: String(
-              item.accion ?? ""
-            ).toLowerCase(),
-
-            folio_pago:
-              item.folio_pago ??
-              item.venta?.folio_pago ??
-              null,
-
-            compra_id:
-              item.compra_id ??
-              item.compra?.id ??
-              null,
-          })
-        );
-
-        return true;
-      } catch (e) {
-        error.value =
-          e.response?.data?.message ||
-          "Error al cargar los datos del Kardex.";
-
-        console.error(
-          "Error al cargar el Kardex:",
-          e
-        );
-
-        return false;
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Buscar Kardex
-    |--------------------------------------------------------------------------
-    |
-    | Valida obligatoriamente:
-    | - Fecha desde
-    | - Fecha hasta
-    | - Código o nombre del producto
-    |
-    */
-    const filtrarPorFechas = async () => {
-      error.value = null;
-
-      const producto =
-        busquedaKardex.value.trim();
-
-      if (!desde.value) {
-        error.value =
-          "Selecciona la fecha desde.";
-
-        return;
-      }
-
-      if (!hasta.value) {
-        error.value =
-          "Selecciona la fecha hasta.";
-
-        return;
-      }
-
-      if (!producto) {
-        error.value =
-          "Escribe el código o nombre del producto.";
-
-        return;
-      }
-
-      if (desde.value > hasta.value) {
-        error.value =
-          "La fecha desde no puede ser mayor que la fecha hasta.";
-
-        return;
-      }
-
-      /*
-      |--------------------------------------------------------------------------
-      | Consultar movimientos por fechas
-      |--------------------------------------------------------------------------
-      */
-      const consultaCorrecta =
-        await obtenerKardex(true);
-
-      if (!consultaCorrecta) {
-        return;
-      }
-
-      /*
-      |--------------------------------------------------------------------------
-      | Aplicar producto después de consultar
-      |--------------------------------------------------------------------------
-      */
-      busquedaAplicada.value = producto;
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Limpiar filtros
-    |--------------------------------------------------------------------------
-    */
-    const limpiarFiltroFechas = async () => {
-      desde.value = "";
-      hasta.value = "";
-      busquedaKardex.value = "";
-      busquedaAplicada.value = "";
-      error.value = null;
-
-      await obtenerKardex(false);
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Descargar ticket de venta
-    |--------------------------------------------------------------------------
-    */
-    const descargarTicket = async (
-      folioPago
-    ) => {
-      if (!folioPago) {
-        error.value =
-          "Este movimiento no tiene un folio de venta.";
-
-        return;
-      }
-
-      error.value = null;
-
-      const nuevaPestana = window.open(
-        "",
-        "_blank"
-      );
-
-      if (!nuevaPestana) {
-        error.value =
-          "El navegador bloqueó la nueva pestaña.";
-
-        return;
-      }
-
-      nuevaPestana.document.write(`
-        <div
-          style="
-            font-family: Arial, sans-serif;
-            padding: 30px;
-          "
-        >
-          Generando ticket...
-        </div>
-      `);
-
-      try {
-        const response = await api.get(
-          `/ticked/${encodeURIComponent(
-            folioPago
-          )}`,
-          {
-            responseType: "blob",
-          }
-        );
-
-        const pdfBlob = new Blob(
-          [response.data],
-          {
-            type: "application/pdf",
-          }
-        );
-
-        const pdfUrl =
-          window.URL.createObjectURL(
-            pdfBlob
-          );
-
-        nuevaPestana.location.href =
-          pdfUrl;
-
-        setTimeout(() => {
-          window.URL.revokeObjectURL(
-            pdfUrl
-          );
-        }, 60000);
-      } catch (e) {
-        nuevaPestana.close();
-
-        error.value =
-          e.response?.data?.message ||
-          "Error al abrir el ticket.";
-
-        console.error(
-          "Error al abrir el ticket:",
-          e
-        );
-      }
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Formatear fecha
-    |--------------------------------------------------------------------------
-    */
-    const formatearFecha = (fecha) => {
-      if (!fecha) {
-        return "Sin fecha";
-      }
-
-      const fechaConvertida = new Date(
-        fecha
-      );
-
-      if (
-        Number.isNaN(
-          fechaConvertida.getTime()
-        )
-      ) {
-        return "Fecha inválida";
-      }
-
-      return fechaConvertida.toLocaleString(
-        "es-MX",
-        {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        }
-      );
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Formatear moneda
-    |--------------------------------------------------------------------------
-    */
-    const formatoMoneda = (valor) => {
-      return Number(
-        valor || 0
-      ).toLocaleString("es-MX", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Clases para movimientos
-    |--------------------------------------------------------------------------
-    */
-    const claseFilaMovimiento = (
-      movimiento
-    ) => ({
-      "mov-entrada":
-        movimiento === "entrada",
-
-      "mov-salida":
-        movimiento === "salida",
-    });
-
-    const claseCantidad = (
-      movimiento
-    ) => {
-      return movimiento === "salida"
-        ? "cantidad-negativa"
-        : "cantidad-positiva";
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Identificar ventas y compras
-    |--------------------------------------------------------------------------
-    */
-    const esVenta = (item) => {
-      const accion = String(
-        item.accion ?? ""
-      ).toLowerCase();
-
-      return (
-        item.movimiento === "salida" &&
-        accion.includes("venta")
-      );
-    };
-
-    const esCompra = (item) => {
-      const accion = String(
-        item.accion ?? ""
-      ).toLowerCase();
-
-      return (
-        item.movimiento === "entrada" &&
-        accion.includes("compra")
-      );
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Ver detalle de compra
-    |--------------------------------------------------------------------------
-    */
-    const verCompra = async (id) => {
-      if (!id) {
-        error.value =
-          "Este movimiento no tiene una compra relacionada.";
-
-        return;
-      }
-
-      modalDetalle.value = true;
-      compraDetalle.value = null;
-      loadingDetalle.value = true;
-      errorDetalle.value = null;
-
-      try {
-        const response = await api.get(
-          `/compras/id/${id}`
-        );
-
-        compraDetalle.value =
-          response.data;
-      } catch (e) {
-        console.error(
-          "Error al obtener la compra:",
-          e
-        );
-
-        errorDetalle.value =
-          e.response?.data?.message ||
-          "No se pudo cargar el detalle de la compra.";
-      } finally {
-        loadingDetalle.value = false;
-      }
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cerrar modal
-    |--------------------------------------------------------------------------
-    */
-    const cerrarModalCompra = () => {
-      modalDetalle.value = false;
-      compraDetalle.value = null;
-      errorDetalle.value = null;
-      loadingDetalle.value = false;
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | Precargar todo el Kardex
-    |--------------------------------------------------------------------------
-    */
-    onMounted(() => {
-      obtenerKardex(false);
-    });
-
-    return {
-      sidebarOpen,
-      kardex,
-      loading,
-      error,
-
-      desde,
-      hasta,
-      busquedaKardex,
-      busquedaAplicada,
-      kardexFiltrado,
-
-      filtrarPorFechas,
-      limpiarFiltroFechas,
-
-      modalDetalle,
-      compraDetalle,
-      loadingDetalle,
-      errorDetalle,
-
-      obtenerKardex,
-      formatearFecha,
-      formatoMoneda,
-      claseFilaMovimiento,
-      claseCantidad,
-
-      descargarTicket,
-      esVenta,
-      esCompra,
-      verCompra,
-      cerrarModalCompra,
-    };
-  },
-};
-</script>

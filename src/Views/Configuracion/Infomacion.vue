@@ -3,11 +3,15 @@
   <div class="empresa-page">
 
     <div class="info-card">
-     <div v-if="permisos?.listar" class="info-header">
+     <div v-if="loadingPermisos" class="info-header">
+  <span>Cargando permisos...</span>
+</div>
+
+     <div v-else-if="permisos?.listar" class="info-header">
   <span>Información de la Empresa</span>
 
-  <button type="button" v-if="permisos?.actualizar" class="btn-edit" @click="abrirModalEditar">
-    <i v-if="permisos?.actualizar" class="bi bi-pencil"></i> Editar
+  <button type="button" v-if="puedeGuardarEmpresa" class="btn-edit" @click="abrirModalEditar">
+    <i class="bi bi-pencil"></i> Editar
   </button>
 </div>
 
@@ -15,7 +19,7 @@
   <span class="text-danger">❌ No tiene permiso para ver esta información</span>
 </div>
 
-      <form v-if="permisos?.listar" class="info-body form-grid" @submit.prevent>
+      <form v-if="!loadingPermisos && permisos?.listar" class="info-body form-grid" @submit.prevent>
 
   <div class="form-group col-4">
     <label>Nombre comercial</label>
@@ -98,7 +102,7 @@
 </form>
     </div>
     <!-- MODAL EDITAR -->
-    <BaseModal v-model:visible="modalEditarVisible" title="Detalles de tu empresa" size="xl">
+    <BaseModal v-if="puedeGuardarEmpresa" v-model:visible="modalEditarVisible" title="Detalles de tu empresa" size="xl">
       <div class="empresa-modal">
         <p class="empresa-info">
           <i class="bi bi-info-circle-fill"></i>
@@ -281,6 +285,7 @@ export default {
       empresa: {},
       empresaTemp: {},
       permisos: null, // null = aún no cargado
+      loadingPermisos: true,
       archivos: {
         logo: null,
         cer: null,
@@ -307,20 +312,63 @@ export default {
       if (this.logoPreview) return this.logoPreview;
       return this.empresa.logo_url || '/img/logo-default.png';
     },
+
+    puedeGuardarEmpresa() {
+      if (!this.permisos?.listar) return false;
+
+      if (this.empresa?.id) {
+        return this.permisos.actualizar;
+      }
+
+      return this.permisos.crear;
+    },
   },
 
-  mounted() {
+  async mounted() {
+    await this.fetchPermisos();
+
+    if (!this.permisos?.listar) return;
+
     this.cargarEmpresa();
     this.obtenerRegimenes();
-    this.fetchPermisos();
   },
 
   methods: {
+    permisoActivo(valor) {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === '1' ||
+        valor === 'true'
+      );
+    },
+
     async fetchPermisos() {
       try {
-        this.permisos = await obtenerPermisosPorModulo('configuracion');
+        const respuesta = await obtenerPermisosPorModulo('configuracion');
+
+        const datosRespuesta =
+          respuesta?.data?.data ??
+          respuesta?.data ??
+          respuesta ??
+          {};
+
+        const datos = datosRespuesta?.permisos ?? datosRespuesta;
+
+        this.permisos = {
+          listar: this.permisoActivo(datos?.listar),
+          crear: this.permisoActivo(datos?.crear),
+          actualizar: this.permisoActivo(datos?.actualizar),
+        };
       } catch (error) {
         console.error('Error al cargar permisos:', error);
+        this.permisos = {
+          listar: false,
+          crear: false,
+          actualizar: false,
+        };
+      } finally {
+        this.loadingPermisos = false;
       }
     },
 
@@ -384,6 +432,8 @@ export default {
     },
 
     abrirModalEditar() {
+      if (!this.puedeGuardarEmpresa) return;
+
       this.empresaTemp = { ...this.empresa };
 
       const reg = this.regimenes.find(r =>
@@ -435,6 +485,15 @@ export default {
     },
 
     async guardarEmpresa() {
+      const tienePermiso = this.empresa.id
+        ? this.permisos?.actualizar
+        : this.permisos?.crear;
+
+      if (!tienePermiso) {
+        alert('No tienes permiso para guardar la información de la empresa.');
+        return;
+      }
+
       this.guardando = true;
 
       try {
@@ -496,7 +555,6 @@ export default {
   },
 };
 </script>
-
 <style scoped>
 .form-grid {
   display: grid;

@@ -1,37 +1,34 @@
 <template>
   <div class="d-flex flex-column flex-lg-row min-vh-100 bg-light">
-    <!-- Sidebar -->
+    <!-- SIDEBAR -->
     <Sidebar
       :class="{ 'd-none d-lg-flex': !sidebarOpen }"
       @close-sidebar="sidebarOpen = false"
     />
 
-    <!-- Contenido principal -->
+    <!-- CONTENIDO PRINCIPAL -->
     <div class="main-content">
       <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
       <main class="container-fluid p-4">
-        <!-- Encabezado -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2 class="fw-bold">Productos</h2>
-
-          <button class="btn btn-primary" @click="openAddModal">
-            <i class="bi bi-plus-circle me-2"></i>
-            Nuevo Producto
-          </button>
+        <!-- CARGANDO -->
+        <div
+          v-if="!permisos || loading"
+          class="text-center py-5"
+        >
+          <div
+            class="spinner-border text-primary"
+            role="status"
+          ></div>
         </div>
 
-        <!-- Cargando -->
-        <div v-if="loading" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-        </div>
-
-        <!-- Error -->
+        <!-- ERROR -->
         <div
           v-if="error"
           class="alert alert-danger alert-dismissible fade show"
         >
           <i class="bi bi-exclamation-triangle me-2"></i>
+
           {{ error }}
 
           <button
@@ -41,130 +38,197 @@
           ></button>
         </div>
 
-        <!-- Tabla -->
-        <div v-if="!loading" class="card shadow-sm">
-          <div class="card-body">
-            <div class="table-responsive">
-              <table
-                ref="tableRef"
-                class="table table-hover align-middle w-100"
-              >
-                <thead class="table-light">
-                  <tr>
-                    <th>#</th>
-                    <th>Código</th>
-                    <th>Nombre</th>
-                    <th>Precio Unitario</th>
-                    <th>Precio Compra</th>
-                    <th>Ganancia</th>
-                    <th>Stock</th>
-                    <th>Activo</th>
-                    <th>Categoría</th>
-                    <th>Medida</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
+        <!-- CONTENIDO CON PERMISO LISTAR -->
+        <div v-if="!loading && permisos?.listar">
+          <!-- ENCABEZADO -->
+          <div
+            class="d-flex justify-content-between align-items-center mb-4"
+          >
+            <h2 class="fw-bold">
+              Productos
+            </h2>
 
-                <tbody>
-                  <tr
-                    v-for="(producto, index) in Productos"
-                    :key="producto.id"
-                  >
-                    <td>{{ index + 1 }}</td>
+            <button
+              v-if="permisos?.crear"
+              type="button"
+              class="btn btn-primary"
+              @click="openAddModal"
+            >
+              <i class="bi bi-plus-circle me-2"></i>
+              Nuevo Producto
+            </button>
+          </div>
 
-                    <td>
-                      {{ producto.codigo_producto }}
-                    </td>
+          <!-- TABLA -->
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="table-responsive">
+                <table
+                  ref="tableRef"
+                  class="table table-hover align-middle w-100"
+                >
+                  <thead class="table-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Código</th>
+                      <th>Nombre</th>
+                      <th>Precio Unitario</th>
+                      <th>Precio Compra</th>
+                      <th>Ganancia</th>
+                      <th>Stock</th>
+                      <th>Activo</th>
+                      <th>Categoría</th>
+                      <th>Medida</th>
 
-                    <td>
-                      {{ producto.nombre }}
-                    </td>
-
-                    <td>
-                      {{ producto.precio_unitario }}
-                    </td>
-
-                    <td>
-                      {{ producto.precio_compra }}
-                    </td>
-
-                    <td>
-                      {{ producto.ganancia }}
-                    </td>
-
-                    <td>
-                      {{ producto.stock }}
-                    </td>
-
-                    <td>
-                      <span
-                        :class="
-                          producto.activo
-                            ? 'badge bg-success'
-                            : 'badge bg-secondary'
+                      <th
+                        v-if="
+                          permisos?.actualizar ||
+                          permisos?.eliminar
                         "
                       >
-                        {{ producto.activo ? 'Sí' : 'No' }}
-                      </span>
-                    </td>
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
 
-                    <td>
-                      {{ producto.categoria?.nombre_categoria || '-' }}
-                    </td>
-
-                    <td>
-                      {{ producto.medida?.unidad_sat || '-' }}
-                    </td>
-
-                    <td>
-                      <button
-                        class="btn btn-sm btn-warning me-2"
-                        @click="openEditModal(producto)"
-                      >
-                        <i class="bi bi-pencil"></i>
-                      </button>
-
-                      <button
-                        class="btn btn-sm btn-danger"
-                        @click="deleteProducto(producto.id)"
-                      >
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-
-                  <tr v-if="Productos.length === 0">
-                    <td
-                      colspan="11"
-                      class="text-center text-muted"
+                  <tbody>
+                    <tr
+                      v-for="(producto, index) in Productos"
+                      :key="producto.id"
                     >
-                      No hay productos registrados
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                      <td>
+                        {{ index + 1 }}
+                      </td>
+
+                      <td>
+                        {{ producto.codigo_producto }}
+                      </td>
+
+                      <td>
+                        {{ producto.nombre }}
+                      </td>
+
+                      <td>
+                        {{ producto.precio_unitario }}
+                      </td>
+
+                      <td>
+                        {{ producto.precio_compra }}
+                      </td>
+
+                      <td>
+                        {{ producto.ganancia }}
+                      </td>
+
+                      <td>
+                        {{ producto.stock }}
+                      </td>
+
+                      <td>
+                        <span
+                          :class="
+                            producto.activo
+                              ? 'badge bg-success'
+                              : 'badge bg-secondary'
+                          "
+                        >
+                          {{ producto.activo ? 'Sí' : 'No' }}
+                        </span>
+                      </td>
+
+                      <td>
+                        {{
+                          producto.categoria
+                            ?.nombre_categoria || '-'
+                        }}
+                      </td>
+
+                      <td>
+                        {{
+                          producto.medida
+                            ?.unidad_sat || '-'
+                        }}
+                      </td>
+
+                      <td
+                        v-if="
+                          permisos?.actualizar ||
+                          permisos?.eliminar
+                        "
+                      >
+                        <button
+                          v-if="permisos?.actualizar"
+                          type="button"
+                          class="btn btn-sm btn-warning me-2"
+                          @click="openEditModal(producto)"
+                        >
+                          <i class="bi bi-pencil"></i>
+                        </button>
+
+                        <button
+                          v-if="permisos?.eliminar"
+                          type="button"
+                          class="btn btn-sm btn-danger"
+                          @click="deleteProducto(producto.id)"
+                        >
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+
+                    <tr v-if="Productos.length === 0">
+                      <td
+                        :colspan="
+                          permisos?.actualizar ||
+                          permisos?.eliminar
+                            ? 11
+                            : 10
+                        "
+                        class="text-center text-muted"
+                      >
+                        No hay productos registrados
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- SIN PERMISO PARA LISTAR -->
+        <div
+          v-if="
+            !loading &&
+            permisos &&
+            !permisos?.listar
+          "
+          class="alert alert-warning text-center"
+        >
+          <i class="bi bi-shield-lock me-2"></i>
+          No tienes permiso para ver los productos.
         </div>
       </main>
     </div>
 
-    <!-- Overlay para móvil -->
+    <!-- OVERLAY MÓVIL -->
     <div
       v-if="sidebarOpen"
       class="sidebar-overlay d-lg-none"
       @click="sidebarOpen = false"
     ></div>
 
-    <!-- Modal Crear/Editar -->
+    <!-- MODAL CREAR/EDITAR -->
     <BaseModal
       v-model:visible="modalVisible"
       :title="modalTitle"
     >
       <div class="row g-3">
-        <!-- Código -->
+        <!-- CÓDIGO -->
         <div class="col-md-4">
-          <label class="form-label">Código</label>
+          <label class="form-label">
+            Código
+          </label>
 
           <input
             v-model.trim="ProductoCodigo"
@@ -174,9 +238,11 @@
           />
         </div>
 
-        <!-- Nombre -->
+        <!-- NOMBRE -->
         <div class="col-md-4">
-          <label class="form-label">Nombre</label>
+          <label class="form-label">
+            Nombre
+          </label>
 
           <input
             v-model.trim="ProductoNombre"
@@ -186,9 +252,11 @@
           />
         </div>
 
-        <!-- Precio unitario -->
+        <!-- PRECIO UNITARIO -->
         <div class="col-md-4">
-          <label class="form-label">Precio Unitario</label>
+          <label class="form-label">
+            Precio Unitario
+          </label>
 
           <input
             v-model.number="ProductoPrecioUnitario"
@@ -200,9 +268,11 @@
           />
         </div>
 
-        <!-- Precio compra -->
+        <!-- PRECIO COMPRA -->
         <div class="col-md-4">
-          <label class="form-label">Precio Compra</label>
+          <label class="form-label">
+            Precio Compra
+          </label>
 
           <input
             v-model.number="ProductoPrecioCompra"
@@ -214,9 +284,11 @@
           />
         </div>
 
-        <!-- Ganancia -->
+        <!-- GANANCIA -->
         <div class="col-md-4">
-          <label class="form-label">Ganancia</label>
+          <label class="form-label">
+            Ganancia
+          </label>
 
           <input
             v-model.number="ProductoGanancia"
@@ -228,21 +300,23 @@
           />
         </div>
 
-        <!-- Stock -->
+        <!-- STOCK -->
         <div class="col-md-4">
-          <label class="form-label">Stock</label>
+          <label class="form-label">
+            Stock
+          </label>
 
-         <input
-  v-model.number="ProductoStock"
-  type="number"
-  min="0"
-  step="0.001"
-  class="form-control"
-  placeholder="Stock"
-/>
+          <input
+            v-model.number="ProductoStock"
+            type="number"
+            min="0"
+            step="0.001"
+            class="form-control"
+            placeholder="Stock"
+          />
         </div>
 
-        <!-- Clave PS -->
+        <!-- CLAVE SAT -->
         <div class="col-md-4">
           <label class="form-label">
             Clave Producto/Servicio SAT
@@ -256,7 +330,7 @@
           />
         </div>
 
-        <!-- Clave unidad -->
+        <!-- CLAVE UNIDAD -->
         <div class="col-md-4">
           <label class="form-label">
             Clave Unidad SAT
@@ -270,7 +344,7 @@
           />
         </div>
 
-        <!-- Activo -->
+        <!-- ACTIVO -->
         <div class="col-md-4 d-flex align-items-center">
           <div class="form-check mt-4">
             <input
@@ -289,9 +363,11 @@
           </div>
         </div>
 
-        <!-- Categoría -->
+        <!-- CATEGORÍA -->
         <div class="col-md-4">
-          <label class="form-label">Categoría</label>
+          <label class="form-label">
+            Categoría
+          </label>
 
           <select
             v-model.number="ProductoCategoria"
@@ -311,9 +387,11 @@
           </select>
         </div>
 
-        <!-- Medida -->
+        <!-- MEDIDA -->
         <div class="col-md-4">
-          <label class="form-label">Medida</label>
+          <label class="form-label">
+            Medida
+          </label>
 
           <select
             v-model.number="ProductoMedida"
@@ -333,7 +411,7 @@
           </select>
         </div>
 
-        <!-- Objeto de impuesto -->
+        <!-- OBJETO DE IMPUESTO -->
         <div class="col-md-4">
           <label class="form-label">
             Objeto de Impuesto
@@ -358,9 +436,11 @@
           </select>
         </div>
 
-        <!-- Impuesto -->
+        <!-- IMPUESTO -->
         <div class="col-md-4">
-          <label class="form-label">Impuesto</label>
+          <label class="form-label">
+            Impuesto
+          </label>
 
           <select
             v-model.number="ProductoImpuestoId"
@@ -381,9 +461,11 @@
           </select>
         </div>
 
-        <!-- Tipo factor -->
+        <!-- TIPO FACTOR -->
         <div class="col-md-4">
-          <label class="form-label">Tipo Factor</label>
+          <label class="form-label">
+            Tipo Factor
+          </label>
 
           <select
             v-model.number="ProductoTipoFactorId"
@@ -404,14 +486,16 @@
           </select>
         </div>
 
-        <!-- Configuración de impuesto -->
+        <!-- CONFIGURACIÓN DE IMPUESTO -->
         <div class="col-md-4">
           <label class="form-label">
             Configuración de Impuesto
           </label>
 
           <select
-            v-model.number="ProductoImpuestoConfiguracionId"
+            v-model.number="
+              ProductoImpuestoConfiguracionId
+            "
             class="form-select"
           >
             <option value="">
@@ -438,6 +522,7 @@
 
       <template #footer>
         <button
+          type="button"
           class="btn btn-secondary"
           @click="modalVisible = false"
         >
@@ -445,6 +530,12 @@
         </button>
 
         <button
+          v-if="
+            editingId
+              ? permisos?.actualizar
+              : permisos?.crear
+          "
+          type="button"
           class="btn btn-primary"
           :disabled="loading"
           @click="saveProducto"
@@ -459,7 +550,7 @@
       </template>
     </BaseModal>
 
-    <!-- Modal de confirmación -->
+    <!-- MODAL DE CONFIRMACIÓN -->
     <ConfirmModal
       v-model:visible="confirmModalVisible"
       :message="confirmMessage"
@@ -469,12 +560,21 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from 'vue';
-import api from '@/services/api.js';
+import {
+  ref,
+  onMounted,
+  nextTick
+} from 'vue';
+
+import api, {
+  obtenerPermisosPorModulo
+} from '@/services/api.js';
+
 import Header from '@/components/HeaderVue.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import BaseModal from '@/components/BaseModal.vue';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+
 import { useDataTable } from '@/composables/useDataTable.js';
 
 export default {
@@ -484,11 +584,16 @@ export default {
     Header,
     Sidebar,
     BaseModal,
-    ConfirmModal,
+    ConfirmModal
   },
 
   setup() {
     const sidebarOpen = ref(false);
+
+    /*
+     * null significa que los permisos aún no cargan.
+     */
+    const permisos = ref(null);
 
     const Productos = ref([]);
     const Medidas = ref([]);
@@ -525,21 +630,65 @@ export default {
     const confirmMessage = ref('');
     const deletingId = ref(null);
 
-    const { tableRef, initDataTable } = useDataTable(Productos);
+    const {
+      tableRef,
+      initDataTable
+    } = useDataTable(Productos);
 
-    /**
-     * Obtiene un arreglo aunque Laravel devuelva:
-     *
-     * [
-     *   ...
-     * ]
-     *
-     * { data: [...] }
-     *
-     * { configuraciones: [...] }
-     *
-     * { impuesto_configuraciones: [...] }
-     */
+    const permisoActivo = (valor) => {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === '1' ||
+        valor === 'true'
+      );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar permisos del módulo productos
+    |--------------------------------------------------------------------------
+    */
+    const fetchPermisos = async () => {
+      try {
+        const respuesta =
+          await obtenerPermisosPorModulo('productos');
+
+        permisos.value = {
+          listar: permisoActivo(
+            respuesta?.listar
+          ),
+
+          crear: permisoActivo(
+            respuesta?.crear
+          ),
+
+          actualizar: permisoActivo(
+            respuesta?.actualizar
+          ),
+
+          eliminar: permisoActivo(
+            respuesta?.eliminar
+          )
+        };
+      } catch (e) {
+        permisos.value = {
+          listar: false,
+          crear: false,
+          actualizar: false,
+          eliminar: false
+        };
+
+        error.value =
+          'No fue posible cargar los permisos de productos.';
+      }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Configuraciones de impuestos
+    |--------------------------------------------------------------------------
+    */
     const extraerConfiguraciones = (data) => {
       const posiblesListas = [
         data,
@@ -547,21 +696,20 @@ export default {
         data?.configuraciones,
         data?.impuesto_configuraciones,
         data?.data?.configuraciones,
-        data?.data?.impuesto_configuraciones,
+        data?.data?.impuesto_configuraciones
       ];
 
-      const listaEncontrada = posiblesListas.find((item) =>
-        Array.isArray(item)
-      );
+      const listaEncontrada =
+        posiblesListas.find((item) =>
+          Array.isArray(item)
+        );
 
       return listaEncontrada || [];
     };
 
-    /**
-     * Permite mostrar el texto aunque el backend no use
-     * exactamente el campo "nombre".
-     */
-    const obtenerNombreConfiguracion = (config) => {
+    const obtenerNombreConfiguracion = (
+      config
+    ) => {
       const nombre =
         config.nombre ??
         config.nombre_configuracion ??
@@ -579,7 +727,8 @@ export default {
         '';
 
       const tipoFactor =
-        config.tipo_factor?.descripcion_tipofactor ??
+        config.tipo_factor
+          ?.descripcion_tipofactor ??
         config.descripcion_tipofactor ??
         config.clave_tipofactor ??
         '';
@@ -593,7 +742,7 @@ export default {
       const partes = [
         impuesto,
         tipoFactor,
-        tasa !== '' ? tasa : '',
+        tasa !== '' ? tasa : ''
       ].filter(
         (item) =>
           item !== null &&
@@ -608,17 +757,28 @@ export default {
       return `Configuración ${config.id}`;
     };
 
-    // =====================================================
-    // Productos
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar productos
+    |--------------------------------------------------------------------------
+    */
     const fetchProductos = async () => {
+      if (!permisos.value?.listar) {
+        Productos.value = [];
+        return;
+      }
+
       loading.value = true;
       error.value = null;
 
       try {
-        const response = await api.get('/productos');
+        const response = await api.get(
+          '/productos'
+        );
 
-        Productos.value = Array.isArray(response.data)
+        Productos.value = Array.isArray(
+          response.data
+        )
           ? response.data
           : response.data?.data || [];
 
@@ -627,7 +787,10 @@ export default {
       } catch (e) {
         error.value =
           'Error al cargar productos: ' +
-          (e.response?.data?.message || e.message);
+          (
+            e.response?.data?.message ||
+            e.message
+          );
 
         console.error(
           'Error al cargar productos:',
@@ -638,14 +801,20 @@ export default {
       }
     };
 
-    // =====================================================
-    // Medidas
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar medidas
+    |--------------------------------------------------------------------------
+    */
     const fetchMedidas = async () => {
       try {
-        const response = await api.get('/getMedida');
+        const response = await api.get(
+          '/getMedida'
+        );
 
-        Medidas.value = Array.isArray(response.data)
+        Medidas.value = Array.isArray(
+          response.data
+        )
           ? response.data
           : response.data?.data || [];
       } catch (e) {
@@ -656,14 +825,20 @@ export default {
       }
     };
 
-    // =====================================================
-    // Categorías
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar categorías
+    |--------------------------------------------------------------------------
+    */
     const fetchCategorias = async () => {
       try {
-        const response = await api.get('/getCategoria');
+        const response = await api.get(
+          '/getCategoria'
+        );
 
-        Categorias.value = Array.isArray(response.data)
+        Categorias.value = Array.isArray(
+          response.data
+        )
           ? response.data
           : response.data?.data || [];
       } catch (e) {
@@ -674,12 +849,16 @@ export default {
       }
     };
 
-    // =====================================================
-    // Objeto, impuesto y tipo factor
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar información fiscal
+    |--------------------------------------------------------------------------
+    */
     const fetchObjetos = async () => {
       try {
-        const response = await api.get('/getexento');
+        const response = await api.get(
+          '/getexento'
+        );
 
         Objetos.value =
           response.data?.objeto_impuesto || [];
@@ -697,43 +876,40 @@ export default {
       }
     };
 
-    // =====================================================
-    // Configuraciones de impuesto
-    // =====================================================
-    const cargarImpuestoConfiguraciones = async () => {
-      try {
-        const response = await api.get(
-          '/impuesto-configuraciones'
-        );
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar configuraciones de impuestos
+    |--------------------------------------------------------------------------
+    */
+    const cargarImpuestoConfiguraciones =
+      async () => {
+        try {
+          const response = await api.get(
+            '/impuesto-configuraciones'
+          );
 
-        console.log(
-          'Respuesta impuesto-configuraciones:',
-          response.data
-        );
+          ImpuestoConfiguraciones.value =
+            extraerConfiguraciones(
+              response.data
+            );
+        } catch (e) {
+          ImpuestoConfiguraciones.value = [];
 
-        ImpuestoConfiguraciones.value =
-          extraerConfiguraciones(response.data);
+          console.error(
+            'Error al cargar configuraciones:',
+            e.response?.data || e
+          );
 
-        console.log(
-          'Configuraciones cargadas:',
-          ImpuestoConfiguraciones.value
-        );
-      } catch (e) {
-        ImpuestoConfiguraciones.value = [];
+          error.value =
+            'No fue posible cargar las configuraciones de impuesto.';
+        }
+      };
 
-        console.error(
-          'Error al cargar configuraciones de impuesto:',
-          e.response?.data || e
-        );
-
-        error.value =
-          'No fue posible cargar las configuraciones de impuesto.';
-      }
-    };
-
-    // =====================================================
-    // Cargar catálogos
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar catálogos
+    |--------------------------------------------------------------------------
+    */
     const cargarCatalogos = async () => {
       await Promise.all([
         Medidas.value.length === 0
@@ -752,13 +928,15 @@ export default {
 
         ImpuestoConfiguraciones.value.length === 0
           ? cargarImpuestoConfiguraciones()
-          : Promise.resolve(),
+          : Promise.resolve()
       ]);
     };
 
-    // =====================================================
-    // Limpiar formulario
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Limpiar formulario
+    |--------------------------------------------------------------------------
+    */
     const limpiarFormulario = () => {
       ProductoCodigo.value = '';
       ProductoNombre.value = '';
@@ -778,10 +956,19 @@ export default {
       editingId.value = null;
     };
 
-    // =====================================================
-    // Abrir modal para agregar
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Abrir modal de nuevo producto
+    |--------------------------------------------------------------------------
+    */
     const openAddModal = async () => {
+      if (!permisos.value?.crear) {
+        error.value =
+          'No tienes permiso para crear productos.';
+
+        return;
+      }
+
       try {
         error.value = null;
 
@@ -792,26 +979,43 @@ export default {
         modalTitle.value = 'Nuevo Producto';
         modalVisible.value = true;
       } catch (e) {
-        console.error('Error al abrir modal:', e);
+        console.error(
+          'Error al abrir modal:',
+          e
+        );
 
         error.value =
           'No fue posible cargar los catálogos del producto.';
       }
     };
 
-    // =====================================================
-    // Abrir modal para editar
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Abrir modal de edición
+    |--------------------------------------------------------------------------
+    */
     const openEditModal = async (producto) => {
+      if (!permisos.value?.actualizar) {
+        error.value =
+          'No tienes permiso para editar productos.';
+
+        return;
+      }
+
       try {
         error.value = null;
 
         const [response] = await Promise.all([
-          api.get(`/productos/${producto.id}`),
-          cargarCatalogos(),
+          api.get(
+            `/productos/${producto.id}`
+          ),
+
+          cargarCatalogos()
         ]);
 
-        const p = response.data?.data || response.data;
+        const p =
+          response.data?.data ||
+          response.data;
 
         ProductoCodigo.value =
           p.codigo_producto || '';
@@ -867,7 +1071,9 @@ export default {
 
         editingId.value = p.id;
 
-        modalTitle.value = 'Editar Producto';
+        modalTitle.value =
+          'Editar Producto';
+
         modalVisible.value = true;
       } catch (e) {
         console.error(
@@ -880,22 +1086,57 @@ export default {
       }
     };
 
-    // =====================================================
-    // Guardar o actualizar producto
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Guardar o actualizar producto
+    |--------------------------------------------------------------------------
+    */
     const saveProducto = async () => {
+      if (
+        editingId.value &&
+        !permisos.value?.actualizar
+      ) {
+        error.value =
+          'No tienes permiso para actualizar productos.';
+
+        return;
+      }
+
+      if (
+        !editingId.value &&
+        !permisos.value?.crear
+      ) {
+        error.value =
+          'No tienes permiso para crear productos.';
+
+        return;
+      }
+
       loading.value = true;
       error.value = null;
 
       try {
         const payload = {
-          codigo_producto: ProductoCodigo.value,
-          nombre: ProductoNombre.value,
-          precio_unitario: ProductoPrecioUnitario.value,
-          precio_compra: ProductoPrecioCompra.value,
-          ganancia: ProductoGanancia.value,
-          stock: ProductoStock.value,
-          activo: ProductoActivo.value,
+          codigo_producto:
+            ProductoCodigo.value,
+
+          nombre:
+            ProductoNombre.value,
+
+          precio_unitario:
+            ProductoPrecioUnitario.value,
+
+          precio_compra:
+            ProductoPrecioCompra.value,
+
+          ganancia:
+            ProductoGanancia.value,
+
+          stock:
+            ProductoStock.value,
+
+          activo:
+            ProductoActivo.value,
 
           id_categoria:
             ProductoCategoria.value === ''
@@ -907,8 +1148,11 @@ export default {
               ? null
               : ProductoMedida.value,
 
-          clave_unidad: ProductoClaveUnidad.value,
-          clave_ps: ProductoClavePS.value,
+          clave_unidad:
+            ProductoClaveUnidad.value,
+
+          clave_ps:
+            ProductoClavePS.value,
 
           objeto_id:
             ProductoObjetoId.value === ''
@@ -928,10 +1172,8 @@ export default {
           impuesto_configuracion_id:
             ProductoImpuestoConfiguracionId.value === ''
               ? null
-              : ProductoImpuestoConfiguracionId.value,
+              : ProductoImpuestoConfiguracionId.value
         };
-
-        console.log('Payload producto:', payload);
 
         if (editingId.value) {
           await api.put(
@@ -939,7 +1181,10 @@ export default {
             payload
           );
         } else {
-          await api.post('/productos', payload);
+          await api.post(
+            '/productos',
+            payload
+          );
         }
 
         modalVisible.value = false;
@@ -948,7 +1193,10 @@ export default {
       } catch (e) {
         error.value =
           'Error al guardar producto: ' +
-          (e.response?.data?.message || e.message);
+          (
+            e.response?.data?.message ||
+            e.message
+          );
 
         console.error(
           'Error al guardar producto:',
@@ -959,10 +1207,19 @@ export default {
       }
     };
 
-    // =====================================================
-    // Solicitar eliminación
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Solicitar eliminación
+    |--------------------------------------------------------------------------
+    */
     const deleteProducto = (id) => {
+      if (!permisos.value?.eliminar) {
+        error.value =
+          'No tienes permiso para eliminar productos.';
+
+        return;
+      }
+
       deletingId.value = id;
 
       confirmMessage.value =
@@ -971,10 +1228,20 @@ export default {
       confirmModalVisible.value = true;
     };
 
-    // =====================================================
-    // Confirmar eliminación
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Confirmar eliminación
+    |--------------------------------------------------------------------------
+    */
     const onConfirmDelete = async () => {
+      if (!permisos.value?.eliminar) {
+        error.value =
+          'No tienes permiso para eliminar productos.';
+
+        confirmModalVisible.value = false;
+        return;
+      }
+
       if (!deletingId.value) {
         return;
       }
@@ -991,7 +1258,10 @@ export default {
       } catch (e) {
         error.value =
           'Error al eliminar producto: ' +
-          (e.response?.data?.message || e.message);
+          (
+            e.response?.data?.message ||
+            e.message
+          );
 
         console.error(
           'Error al eliminar producto:',
@@ -1004,21 +1274,23 @@ export default {
       }
     };
 
-    // =====================================================
-    // Inicio
-    // =====================================================
+    /*
+    |--------------------------------------------------------------------------
+    | Inicialización
+    |--------------------------------------------------------------------------
+    */
     onMounted(async () => {
-      await Promise.all([
-        fetchProductos(),
-        fetchMedidas(),
-        fetchCategorias(),
-        fetchObjetos(),
-        cargarImpuestoConfiguraciones(),
-      ]);
+      await fetchPermisos();
+
+      if (permisos.value?.listar) {
+        await fetchProductos();
+      }
     });
 
     return {
       sidebarOpen,
+
+      permisos,
 
       Productos,
       Medidas,
@@ -1061,9 +1333,9 @@ export default {
       openEditModal,
       saveProducto,
       deleteProducto,
-      onConfirmDelete,
+      onConfirmDelete
     };
-  },
+  }
 };
 </script>
 

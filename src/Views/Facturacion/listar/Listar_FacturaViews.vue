@@ -8,10 +8,27 @@
             <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
             <main class="container-fluid pt-5 pt-lg-4 mt-4">
+                <!-- CARGANDO PERMISOS -->
+                <div v-if="loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
 
+                <!-- SIN PERMISO PARA LISTAR -->
+                <div
+                    v-else-if="permisos !== null && !permisos.listar"
+                    class="alert alert-warning"
+                    role="alert"
+                >
+                    <i class="bi bi-shield-lock me-2"></i>
+                    No tienes permiso para ver las facturas.
+                </div>
 
-
-                <div class="card shadow-sm border-0 rounded-3">
+                <div
+                    v-else-if="permisos !== null && permisos.listar"
+                    class="card shadow-sm border-0 rounded-3"
+                >
                     <div class="card-header bg-primary text-white fw-bold rounded-top-3">
                         <i class="bi bi-receipt"></i> Listado de Facturas
                     </div>
@@ -143,12 +160,14 @@
                                             </button>
 
                                             <!-- CANCELAR -->
-                                            <button class="btn btn-sm btn-outline-danger"
+                                            <button v-if="permisos.eliminar"
+                                                class="btn btn-sm btn-outline-danger"
                                                 @click="abrirModalCancelar(factura)">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                             <!-- ACUSE CANCELACIÓN -->
-                                            <button v-if="factura.Status === 'cancelada'"
+                                            <button
+                                                v-if="factura.Status === 'cancelada' && permisos.actualizar"
                                                 class="btn btn-sm btn-outline-primary me-1"
                                                 @click="descargarAcuse(factura.cfdi_uid)" title="Descargar acuse">
                                                 <i class="bi bi-file-earmark-code"></i>
@@ -175,6 +194,7 @@
 
     <VerFacturaModal :factura="facturaSeleccionada" :mostrar="mostrarModal" @cerrar="mostrarModal = false" />
    <ModalCancelarCfdi
+    v-if="permisos?.listar && permisos?.eliminar"
     :show="mostrarModalCancelar"
     :factura="facturaCancelar"
     :cfdis="facturas"
@@ -191,7 +211,7 @@ import Header from "@/components/HeaderVue.vue";
 import Sidebar from "@/components/Sidebar.vue";
 import VerFacturaModal from "@/Views/Facturacion/VerFacturaModal.vue";
 import ModalCancelarCfdi from "@/Views/Facturacion/ModalCancelarCfdi.vue";
-import api from "@/services/api.js";
+import api, { obtenerPermisosPorModulo } from "@/services/api.js";
 import Swal from "sweetalert2";
 import { useDataTable } from "@/composables/useDataTable.js";
 
@@ -207,6 +227,8 @@ export default {
 
     setup() {
         const sidebarOpen = ref(false);
+        const loading = ref(true);
+        const permisos = ref(null);
         const facturas = ref([]);
 
         const mostrarModal = ref(false);
@@ -223,6 +245,45 @@ export default {
         const tipoBusqueda = ref("uuid");
         const valorBusqueda = ref("");
         const buscandoCfdi = ref(false);
+
+        const permisoActivo = (valor) => {
+            return (
+                valor === true ||
+                valor === 1 ||
+                valor === "1" ||
+                valor === "true"
+            );
+        };
+
+        const fetchPermisos = async () => {
+            try {
+                const respuesta = await obtenerPermisosPorModulo("listar_factura");
+
+                const datosRespuesta =
+                    respuesta?.data?.data ??
+                    respuesta?.data ??
+                    respuesta ??
+                    {};
+
+                const datos = datosRespuesta?.permisos ?? datosRespuesta;
+
+                permisos.value = {
+                    listar: permisoActivo(datos?.listar),
+                    eliminar: permisoActivo(datos?.eliminar),
+                    actualizar: permisoActivo(datos?.actualizar)
+                };
+            } catch (error) {
+                console.error("Error al obtener permisos de facturación:", error);
+
+                permisos.value = {
+                    listar: false,
+                    eliminar: false,
+                    actualizar: false
+                };
+            } finally {
+                loading.value = false;
+            }
+        };
 
         const { tableRef, initDataTable } = useDataTable(facturas);
 
@@ -259,6 +320,15 @@ export default {
         });
 
         const abrirModalCancelar = (factura) => {
+            if (!permisos.value?.eliminar) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Sin permiso",
+                    text: "No tienes permiso para cancelar facturas."
+                });
+                return;
+            }
+
             console.log("FACTURA A CANCELAR:", factura);
 
             facturaCancelar.value = factura;
@@ -292,6 +362,15 @@ export default {
         };
 
         const procesarCancelacion = async (payload) => {
+            if (!permisos.value?.eliminar) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Sin permiso",
+                    text: "No tienes permiso para cancelar facturas."
+                });
+                return;
+            }
+
             try {
                 const uuidCancelar = payload?.uuid || obtenerUuid(facturaCancelar.value);
 
@@ -438,6 +517,15 @@ export default {
         };
 
         const descargarAcuse = async (cfdiUid) => {
+            if (!permisos.value?.actualizar) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Sin permiso",
+                    text: "No tienes permiso para descargar el acuse."
+                });
+                return;
+            }
+
             try {
                 const response = await api.get(`/cfdi/${cfdiUid}/acuse`, {
                     responseType: "blob"
@@ -549,7 +637,11 @@ export default {
             }
         };
 
-        onMounted(() => {
+        onMounted(async () => {
+            await fetchPermisos();
+
+            if (!permisos.value?.listar) return;
+
             cargarFacturas();
             cargarSeries();
         });
@@ -557,6 +649,8 @@ export default {
         return {
             tableRef,
             sidebarOpen,
+            loading,
+            permisos,
 
             facturas,
             facturasFiltradas,
@@ -590,7 +684,6 @@ export default {
     }
 };
 </script>
-
 
 
 

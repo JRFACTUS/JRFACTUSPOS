@@ -6,6 +6,22 @@
       <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
       <main class="dashboard-main">
+        <div v-if="loadingPermisos" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+        </div>
+
+        <div
+          v-else-if="permisos !== null && !permisos.listar"
+          class="alert alert-warning"
+          role="alert"
+        >
+          <i class="bi bi-shield-lock me-2"></i>
+          No tienes permiso para ver el panel de administración.
+        </div>
+
+        <template v-else-if="permisos !== null && permisos.listar">
         <section class="top-panel">
           <div>
             <span class="eyebrow">JRFactu CFDI 4.0</span>
@@ -105,6 +121,7 @@
 
           
         </section>
+        </template>
       </main>
     </div>
 
@@ -114,7 +131,7 @@
 
 <script>
 import { ref, onMounted, nextTick } from "vue";
-import api from "@/services/api.js";
+import api, { obtenerPermisosPorModulo } from "@/services/api.js";
 import Header from "@/components/HeaderVue.vue";
 import Sidebar from "@/components/Sidebar.vue";
 import {
@@ -135,6 +152,43 @@ export default {
 
   setup() {
     const sidebarOpen = ref(true);
+    const loadingPermisos = ref(true);
+    const permisos = ref(null);
+
+    const permisoActivo = (valor) => {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === "1" ||
+        valor === "true"
+      );
+    };
+
+    const fetchPermisos = async () => {
+      try {
+        const respuesta = await obtenerPermisosPorModulo("dashboard");
+
+        const datosRespuesta =
+          respuesta?.data?.data ??
+          respuesta?.data ??
+          respuesta ??
+          {};
+
+        const datos = datosRespuesta?.permisos ?? datosRespuesta;
+
+        permisos.value = {
+          listar: permisoActivo(datos?.listar),
+        };
+      } catch (error) {
+        console.error("Error al obtener permisos del dashboard:", error);
+
+        permisos.value = {
+          listar: false,
+        };
+      } finally {
+        loadingPermisos.value = false;
+      }
+    };
 
     const resumenCards = ref([
       {
@@ -378,7 +432,11 @@ const totalVentasFacturadasHoy = ref(0);
       });
     };
 
-    onMounted(() => {
+    onMounted(async () => {
+      await fetchPermisos();
+
+      if (!permisos.value?.listar) return;
+
       cargarUsuarios();
       cargarVentasPorMes();
       cargarTotalCfdi();
@@ -387,6 +445,8 @@ const totalVentasFacturadasHoy = ref(0);
 
     return {
       sidebarOpen,
+      loadingPermisos,
+      permisos,
       resumenCards,
       anioSeleccionado,
       mesSeleccionado,

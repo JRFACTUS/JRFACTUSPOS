@@ -6,16 +6,43 @@
       <Header @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
       <main class="container-fluid pt-5 pt-lg-4 mt-4">
+        <!-- CARGANDO PERMISOS -->
+        <div v-if="loading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+        </div>
+
+        <!-- SIN PERMISO PARA LISTAR -->
+        <div
+          v-else-if="permisos !== null && !permisos.listar"
+          class="alert alert-warning"
+          role="alert"
+        >
+          <i class="bi bi-shield-lock me-2"></i>
+          No tienes permiso para ver facturación.
+        </div>
+
+        <!-- CONTENIDO DEL MÓDULO -->
+        <div v-else-if="permisos !== null && permisos.listar">
         <h3 class="mb-4">Crear CFDI 4.0</h3>
 
 
         <!-- Botón Importar (tu botón original) -->
-        <button class="btn btn-outline-primary btn-sm mb-3" @click="abrirModalImportar">
+        <button
+          v-if="permisos.crear"
+          class="btn btn-outline-primary btn-sm mb-3"
+          @click="abrirModalImportar"
+        >
           <i class="bi bi-upload"></i> Importar Venta
         </button>
 
         <!-- Botón Timbrar (palomita verde) -->
-        <button class="btn btn-success btn-sm mb-3 ms-2" @click="timbrarFactura">
+        <button
+          v-if="permisos.crear"
+          class="btn btn-success btn-sm mb-3 ms-2"
+          @click="timbrarFactura"
+        >
           <i class="bi bi-check-circle"></i> Timbrar
         </button>
         <!-- Botón Cancelar (x roja) -->
@@ -225,14 +252,14 @@
           </div>
         </div>
 
-
+        </div>
       </main>
     </div>
 
     <div v-if="sidebarOpen" class="sidebar-overlay d-lg-none" @click="sidebarOpen = false"></div>
 
     <!-- Modal Importar Venta -->
-    <ModalImportarVenta :visible="mostrarModalImportar" :ventas="ventasDisponibles"
+    <ModalImportarVenta v-if="permisos?.listar && permisos?.crear" :visible="mostrarModalImportar" :ventas="ventasDisponibles"
       @close="mostrarModalImportar = false" @import="importarVenta" />
   </div>
 </template>
@@ -243,7 +270,7 @@ import Header from "@/components/HeaderVue.vue";
 import Sidebar from "@/components/Sidebar.vue";
 import ModalImportarVenta from "@/Views/Facturacion/ModalImportarVenta.vue";
 import TablaConceptos from "@/Views/Facturacion/TablaConceptos.vue";
-import api from "@/services/api.js";
+import api, { obtenerPermisosPorModulo } from "@/services/api.js";
 
 // ✔ SweetAlert2 correctamente importado
 import Swal from "sweetalert2";
@@ -254,6 +281,8 @@ export default {
 
   setup() {
     const sidebarOpen = ref(true);
+    const loading = ref(true);
+    const permisos = ref(null);
     const seccionActiva = ref(1);
     const mostrarModalImportar = ref(false);
     const conceptos = ref([]);
@@ -267,6 +296,43 @@ export default {
       objeto_imps: [],
       monedas: []
     });
+
+    const permisoActivo = (valor) => {
+      return (
+        valor === true ||
+        valor === 1 ||
+        valor === "1" ||
+        valor === "true"
+      );
+    };
+
+    const fetchPermisos = async () => {
+      try {
+        const respuesta = await obtenerPermisosPorModulo("facturacion");
+
+        const datosRespuesta =
+          respuesta?.data?.data ??
+          respuesta?.data ??
+          respuesta ??
+          {};
+
+        const datos = datosRespuesta?.permisos ?? datosRespuesta;
+
+        permisos.value = {
+          listar: permisoActivo(datos?.listar),
+          crear: permisoActivo(datos?.crear),
+        };
+      } catch (error) {
+        console.error("Error al obtener permisos de facturación:", error);
+
+        permisos.value = {
+          listar: false,
+          crear: false,
+        };
+      } finally {
+        loading.value = false;
+      }
+    };
 
     const factura = reactive({
       uuid_cfdi_sustituido: null,
@@ -338,6 +404,8 @@ export default {
       }
     };
     const abrirModalImportar = () => {
+      if (!permisos.value?.crear) return;
+
       mostrarModalImportar.value = true;
     };
     const importarVenta = (venta) => {
@@ -429,6 +497,15 @@ export default {
 
 
     const timbrarFactura = async () => {
+      if (!permisos.value?.crear) {
+        Swal.fire({
+          icon: "warning",
+          title: "Sin permiso",
+          text: "No tienes permiso para crear facturas.",
+        });
+        return;
+      }
+
       const result = await Swal.fire({
         title: "¿Generar CFDI?",
         text: "Una vez timbrado no podrás modificar la factura.",
@@ -538,7 +615,11 @@ export default {
       conceptos.value = [];
     };
 
-    onMounted(() => {
+    onMounted(async () => {
+      await fetchPermisos();
+
+      if (!permisos.value?.listar) return;
+
       obtenerRegimenes();
       obtenerEmpresa();
       cargarCatalogos();
@@ -548,6 +629,8 @@ export default {
 
     return {
       sidebarOpen,
+      loading,
+      permisos,
       seccionActiva,
       factura,
       regimenesFiscales,

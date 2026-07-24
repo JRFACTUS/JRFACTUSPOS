@@ -251,10 +251,7 @@ export default {
                     listar: permisoActivo(datos?.listar),
                 };
             } catch (e) {
-                console.error(
-                    'Error al obtener permisos del reporte de ventas:',
-                    e
-                );
+                error.value = 'Error al obtener permisos del reporte de ventas.';
 
                 permisos.value = {
                     listar: false,

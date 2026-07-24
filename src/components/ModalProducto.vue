@@ -152,7 +152,7 @@ export default {
 
         this.offset += this.limit;
       } catch (e) {
-        console.error("Error al cargar productos:", e);
+        alert.error("Error al cargar productos:", e);
         alert("No se pudieron cargar los productos.");
       } finally {
         this.loading = false;

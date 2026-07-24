@@ -10,10 +10,7 @@
             <main class="container-fluid p-4">
 
                 <!-- Loading -->
-                <div
-                    v-if="loading || permisos === null"
-                    class="text-center py-5"
-                >
+                <div v-if="loading || permisos === null" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
                 </div>
 
@@ -23,11 +20,8 @@
                 </div>
 
                 <!-- Sin permiso para listar -->
-                <div
-                    v-if="!loading && permisos !== null && !permisos.listar"
-                    class="alert alert-warning mt-3"
-                    role="alert"
-                >
+                <div v-if="!loading && permisos !== null && !permisos.listar" class="alert alert-warning mt-3"
+                    role="alert">
                     <i class="bi bi-shield-lock me-2"></i>
                     No tienes permiso para ver ventas.
                 </div>
@@ -245,8 +239,8 @@
                 </div>
 
                 <!-- Modal Devolución -->
-                <div v-if="modalDevolucionVisible && permisos?.actualizar"
-                    class="modal fade show d-block" tabindex="-1">
+                <div v-if="modalDevolucionVisible && permisos?.actualizar" class="modal fade show d-block"
+                    tabindex="-1">
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
 
@@ -300,8 +294,7 @@
                                     Cancelar
                                 </button>
 
-                                <button v-if="permisos.actualizar" class="btn btn-warning"
-                                    @click="procesarDevolucion">
+                                <button v-if="permisos.actualizar" class="btn btn-warning" @click="procesarDevolucion">
                                     Procesar Devolución
                                 </button>
 
@@ -388,8 +381,7 @@ const fetchPermisos = async () => {
             eliminar: permisoActivo(datos?.eliminar)
         };
     } catch (e) {
-        console.error('Error al obtener los permisos de ventas:', e);
-
+       
         permisos.value = {
             listar: false,
             crear: false,
@@ -465,7 +457,7 @@ const verDetalle = async (venta) => {
         const ventaDetalle = res.data;
 
         if (!ventaDetalle || !Array.isArray(ventaDetalle.detalle)) {
-            console.error("Respuesta recibida:", res.data);
+          
             throw new Error("La respuesta no contiene detalle de productos.");
         }
 
@@ -490,7 +482,7 @@ const verDetalle = async (venta) => {
 
     } catch (e) {
         alert("❌ Error al obtener detalle de la venta");
-        console.error(e);
+        
     }
 };
 // 🔹 Abrir modal devolución
@@ -506,7 +498,7 @@ const abrirModalDevolucion = async (venta) => {
         const ventaDetalle = res.data;
 
         if (!ventaDetalle || !Array.isArray(ventaDetalle.detalle)) {
-            console.error("Respuesta recibida:", res.data);
+         
             throw new Error("La respuesta no contiene detalle de productos.");
         }
 
@@ -532,7 +524,6 @@ const abrirModalDevolucion = async (venta) => {
 
         modalDevolucionVisible.value = true;
     } catch (e) {
-        console.error("Error al obtener detalle de la venta para devolución", e);
         alert("❌ Error al obtener detalle de la venta para devolución");
     }
 };
@@ -581,7 +572,7 @@ const procesarDevolucion = async () => {
     } catch (e) {
         const msg = e.response?.data?.message || e.message || 'Error desconocido';
         alert('❌ Error al procesar la devolución: ' + msg);
-        console.error(e);
+       
     }
 };
 
@@ -593,17 +584,25 @@ const descargarTicket = async (folioPago) => {
     }
 
     try {
-        const res = await api.get(`/ticked/${folioPago}`, { responseType: 'blob' });
-        const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `ticket-${folioPago}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const res = await api.get(`/ticked/${folioPago}`, {
+            responseType: 'blob'
+        });
+
+        const blob = new Blob([res.data], {
+            type: 'application/pdf'
+        });
+
+        const url = window.URL.createObjectURL(blob);
+
+        window.open(url, '_blank');
+
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+        }, 1000);
+
     } catch (e) {
-        alert('❌ Error al descargar el ticket');
-        console.error(e);
+        alert('❌ Error al abrir el ticket');
+       
     }
 };
 

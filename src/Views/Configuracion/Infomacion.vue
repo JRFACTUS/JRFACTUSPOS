@@ -361,7 +361,7 @@ export default {
           actualizar: this.permisoActivo(datos?.actualizar),
         };
       } catch (error) {
-        console.error('Error al cargar permisos:', error);
+       
         this.permisos = {
           listar: false,
           crear: false,
@@ -416,7 +416,8 @@ export default {
           updated_at: d.updated_at || '',
         };
       } catch (error) {
-        console.error('Error al cargar empresa:', error);
+        
+        alert('Error al cargar la información de la empresa. Por favor, intenta nuevamente.');
       }
     },
 
@@ -427,8 +428,9 @@ export default {
           this.regimenes = res.data.regimenes_fiscales;
         }
       } catch (error) {
-        console.error('Error al obtener regímenes fiscales:', error);
-      }
+         
+          alert('Error al obtener regímenes fiscales. Por favor, intenta nuevamente.');
+        }
     },
 
     abrirModalEditar() {
@@ -545,7 +547,7 @@ export default {
         alert(empresaActualizada.id ? 'Empresa actualizada correctamente.' : 'Empresa creada correctamente.');
 
       } catch (error) {
-        console.error('Error al guardar empresa:', error);
+       
         const msg = error.response?.data?.message || 'No se pudo guardar la empresa.';
         alert(msg);
       } finally {

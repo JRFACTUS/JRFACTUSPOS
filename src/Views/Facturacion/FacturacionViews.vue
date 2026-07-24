@@ -323,7 +323,7 @@ export default {
           crear: permisoActivo(datos?.crear),
         };
       } catch (error) {
-        console.error("Error al obtener permisos de facturación:", error);
+        alert("Error al obtener permisos de facturación. Por favor, intenta nuevamente.");
 
         permisos.value = {
           listar: false,
@@ -374,16 +374,17 @@ export default {
           regimenesFiscales.value = res.data.regimenes_fiscales;
         }
       } catch (error) {
-        console.error("Error al obtener regímenes fiscales:", error);
+        alert("Error al obtener regimenes fiscales. Por favor, intenta nuevamente.");
+       
       }
     };
-
+    
     const cargarCatalogos = async () => {
       try {
         const r = await api.get("/getfiscales");
         catalogos.value = r.data.data;
       } catch (error) {
-        console.error("Error cargando catálogos fiscales:", error);
+        alert("Error al cargar catálogos fiscales. Por favor, intenta nuevamente.");
       }
     };
     const obtenerEmpresa = async () => {
@@ -400,7 +401,8 @@ export default {
           factura.emisor.regimen_fiscal = empresa.regimen || "";
         }
       } catch (error) {
-        console.error("Error al obtener la empresa:", error);
+        alert("Error al obtener la empresa. Por favor, intenta nuevamente.");
+       
       }
     };
     const abrirModalImportar = () => {
@@ -454,7 +456,8 @@ export default {
         const objetoImp = p.objeto_sat ?? p.ObjetoImp;
 
         if (!objetoImp) {
-          console.warn("Producto sin ObjetoImp configurado:", p);
+          alert("Producto sin ObjetoImp configurado.");
+          
         }
 
         const concepto = {
@@ -490,7 +493,7 @@ export default {
         cfdisTimbrados.value = response.data.data
           .filter(cfdi => cfdi.Status === "enviada");
       } catch (error) {
-        console.error("Error cargando CFDIs:", error);
+        alert("Error al cargar CFDIs timbrados. Por favor, intenta nuevamente.");
       }
     };
 
@@ -556,7 +559,7 @@ export default {
           tipo_documento_id: factura.tipo_documento_id,
         };
 
-        console.log("Payload timbrado:", payload);
+      
 
         Swal.fire({
           title: "Generando CFDI...",
@@ -592,7 +595,8 @@ export default {
           text: "El CFDI se timbró correctamente.",
         });
       } catch (error) {
-        console.error(error);
+        alert("Error al timbrar la factura. Por favor, intenta nuevamente.");
+       
 
         Swal.fire({
           icon: "error",

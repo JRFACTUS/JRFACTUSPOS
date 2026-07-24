@@ -242,10 +242,7 @@ export default {
                     listar: permisoActivo(datos?.listar),
                 };
             } catch (e) {
-                console.error(
-                    'Error al obtener permisos del reporte de inventario:',
-                    e
-                );
+                error.value = 'Error al obtener permisos del reporte de inventario.';
 
                 permisos.value = {
                     listar: false,

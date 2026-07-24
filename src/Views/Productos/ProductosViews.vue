@@ -792,10 +792,7 @@ export default {
             e.message
           );
 
-        console.error(
-          'Error al cargar productos:',
-          e.response?.data || e
-        );
+       
       } finally {
         loading.value = false;
       }
@@ -818,10 +815,7 @@ export default {
           ? response.data
           : response.data?.data || [];
       } catch (e) {
-        console.error(
-          'Error al cargar medidas:',
-          e.response?.data || e
-        );
+        error.value = 'Error al cargar medidas.';
       }
     };
 
@@ -842,10 +836,8 @@ export default {
           ? response.data
           : response.data?.data || [];
       } catch (e) {
-        console.error(
-          'Error al cargar categorías:',
-          e.response?.data || e
-        );
+        error.value = 'Error al cargar categorías.';
+       
       }
     };
 
@@ -869,10 +861,7 @@ export default {
         TiposFactor.value =
           response.data?.tipo_factor || [];
       } catch (e) {
-        console.error(
-          'Error al cargar información fiscal:',
-          e.response?.data || e
-        );
+        error.value = 'Error al cargar información.';
       }
     };
 
@@ -895,10 +884,7 @@ export default {
         } catch (e) {
           ImpuestoConfiguraciones.value = [];
 
-          console.error(
-            'Error al cargar configuraciones:',
-            e.response?.data || e
-          );
+        
 
           error.value =
             'No fue posible cargar las configuraciones de impuesto.';
@@ -979,10 +965,7 @@ export default {
         modalTitle.value = 'Nuevo Producto';
         modalVisible.value = true;
       } catch (e) {
-        console.error(
-          'Error al abrir modal:',
-          e
-        );
+       
 
         error.value =
           'No fue posible cargar los catálogos del producto.';
@@ -1076,10 +1059,7 @@ export default {
 
         modalVisible.value = true;
       } catch (e) {
-        console.error(
-          'Error al cargar producto:',
-          e.response?.data || e
-        );
+        
 
         error.value =
           'No fue posible cargar la información del producto.';
@@ -1198,10 +1178,6 @@ export default {
             e.message
           );
 
-        console.error(
-          'Error al guardar producto:',
-          e.response?.data || e
-        );
       } finally {
         loading.value = false;
       }
@@ -1263,10 +1239,7 @@ export default {
             e.message
           );
 
-        console.error(
-          'Error al eliminar producto:',
-          e.response?.data || e
-        );
+       
       } finally {
         loading.value = false;
         deletingId.value = null;

@@ -180,7 +180,7 @@ export default {
           listar: permisoActivo(datos?.listar),
         };
       } catch (error) {
-        console.error("Error al obtener permisos del dashboard:", error);
+       
 
         permisos.value = {
           listar: false,
@@ -262,7 +262,7 @@ const totalVentasFacturadasHoy = ref(0);
         await nextTick();
         dibujarGraficoUsuarios(cantidadUsuarios, cantidadClientes);
       } catch (error) {
-        console.error("Error obteniendo datos:", error);
+        alert("Error al obtener datos. Por favor, intenta nuevamente.");
       }
     };
 
@@ -331,7 +331,7 @@ const totalVentasFacturadasHoy = ref(0);
 
         totalFacturas.value = Number(data.total_facturas || 0);
       } catch (error) {
-        console.error("Error obteniendo total CFDI:", error);
+        alert("Error al obtener el total de CFDI. Por favor, intenta nuevamente."); 
       }
     };
 
@@ -343,7 +343,7 @@ const totalVentasFacturadasHoy = ref(0);
       totalVentasFacturadasHoy.value = response.data.total;
     }
   } catch (error) {
-    console.error("Error al obtener las ventas facturadas de hoy:", error);
+    alert("Error al obtener las ventas facturadas hoy. Por favor, intenta nuevamente.");
   }
 };
     const dibujarGraficoUsuarios = (usuarios, clientes) => {

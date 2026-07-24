@@ -95,13 +95,7 @@
 
           </form>
 
-      <p class="forgot-password">
-        Contacta a soporte en
-        <a href="mailto:soporte@jrfactu.com">
-          soporte@jrfactu.com
-        </a>
-        para restablecer tu contraseña.
-      </p>
+     
 
         </div>
 
@@ -883,11 +877,7 @@ export default {
           password: password.value
         });
 
-        console.log(
-          'Respuesta completa del login:',
-          res.data
-        );
-
+      
         const token = res.data.token;
 
         const usuarioApi =
@@ -960,16 +950,8 @@ export default {
           new Event('permisos-actualizados')
         );
 
-        console.log(
-          'Usuario guardado:',
-          usuarioCompleto
-        );
 
-        console.log(
-          'Permisos guardados:',
-          permisos
-        );
-
+      
         /*
          * Ir al primer módulo permitido.
          */
@@ -978,10 +960,7 @@ export default {
 
         await router.replace(rutaInicial);
       } catch (e) {
-        console.error(
-          'Error al iniciar sesión:',
-          e
-        );
+       
 
         error.value =
           e.response?.data?.message ||
@@ -1016,10 +995,7 @@ export default {
 
         router.replace(rutaInicial);
       } catch (e) {
-        console.error(
-          'La sesión guardada no es válida:',
-          e
-        );
+        
 
         limpiarSesionAnterior();
       }

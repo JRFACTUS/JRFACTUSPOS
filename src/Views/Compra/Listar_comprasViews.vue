@@ -785,10 +785,7 @@ export default {
           err.response?.data?.message ||
           "No se pudieron cargar las compras.";
 
-        console.error(
-          "Error al cargar compras:",
-          err
-        );
+       
       } finally {
         loading.value = false;
       }
@@ -835,10 +832,7 @@ export default {
 
         modalDetalle.value = true;
       } catch (err) {
-        console.error(
-          "Error al obtener compra:",
-          err
-        );
+      
 
         error.value =
           err.response?.data?.message ||

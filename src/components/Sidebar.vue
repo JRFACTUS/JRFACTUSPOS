@@ -419,22 +419,9 @@ export default {
             this.obtenerPermisosLocalStorage();
         }
 
-        console.log(
-          'Usuario Sidebar:',
-          this.usuario
-        );
-
-        console.log(
-          'Administrador:',
-          this.esAdministrador
-        );
-
-        console.log(
-          'Permisos Sidebar:',
-          this.permisos
-        );
+       
       } catch (error) {
-        console.error(
+        alert.error(
           'Error al cargar la sesión:',
           error
         );
@@ -479,7 +466,7 @@ export default {
             eliminar: acciones.eliminar ?? false
           });
         } catch (error) {
-          console.error(
+          alert.error(
             `No se pudo leer ${clave}:`,
             error
           );

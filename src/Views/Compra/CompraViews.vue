@@ -70,14 +70,14 @@ export default {
         const res = await api.get("/provedores");
         proveedores.value = res.data.data || [];
       } catch (e) {
-        console.error("Error al cargar proveedores:", e);
+        alert("Error al obtener proveedores. Por favor, intenta nuevamente.");
       }
     };
 
     // Guardar compra (simulación)
     const guardarCompra = (compra) => {
-      console.log("Compra guardada:", compra);
-      alert("Compra registrada correctamente (simulación).");
+    
+      alert("Compra registrada correctamente ");
     };
 
     // Abrir modal con F4

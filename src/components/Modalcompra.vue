@@ -202,7 +202,7 @@ export default {
           listar: this.permisoActivo(datos?.listar),
         };
       } catch (error) {
-        console.error(
+        alert.error(
           "Error al obtener permisos de productos:",
           error
         );
@@ -251,7 +251,7 @@ export default {
 
         this.offset += this.limit;
       } catch (e) {
-        console.error(
+        alert.error(
           "Error al cargar productos:",
           e
         );

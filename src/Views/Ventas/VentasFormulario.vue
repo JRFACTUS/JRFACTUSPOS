@@ -460,51 +460,79 @@ export default {
     };
 
     const confirmarCobro = async (pagos) => {
-      if (!props.usuario) return alert("Debes iniciar sesión.");
-      if (!selectedCliente.value || !productos.value.length)
-        return alert("Complete todos los campos.");
+  if (!props.usuario) return alert("Debes iniciar sesión.");
 
-      try {
-        // Calcular total de la venta
-        const total = productos.value.reduce((acc, p) => acc + (p.cantidad * p.precio), 0);
+  if (!selectedCliente.value || !productos.value.length) {
+    return alert("Complete todos los campos.");
+  }
 
-        // 👇 Estructura que se envía al backend
-        const payload = {
-          cliente_id: selectedCliente.value,
-          user_id: props.usuario.id,
-          fecha: new Date().toISOString().split("T")[0],
-          hora: new Date().toLocaleTimeString('en-GB', { hour12: false }),
-          total,
-          pagos, // array con los métodos de pago del modal
-          productos: productos.value.map(p => ({
-            producto_id: p.id, // 👈 importante: ID del producto real
-            cantidad: p.cantidad,
-            precio_unitario: p.precio,
-            subtotal: p.total // 👈 para guardar en venta_detalles
-          }))
-        };
+  try {
+    const total = productos.value.reduce(
+      (acc, p) => acc + (p.cantidad * p.precio),
+      0
+    );
 
-        const res = await api.post("/venta", payload);
-        alert(`✅ Venta registrada correctamente. Folio: ${res.data.venta.folio_pago}`);
+    const payload = {
+      cliente_id: selectedCliente.value,
+      user_id: props.usuario.id,
+      fecha: new Date().toISOString().split("T")[0],
+      hora: new Date().toLocaleTimeString("en-GB", {
+        hour12: false
+      }),
+      total,
+      pagos,
 
-        // --- Limpiar formulario ---
-        productos.value = [];
-        productoBusqueda.value = "";
-        codigoProducto.value = null;
-        cantidad.value = 1;
-        precioVenta.value = 0;
-        selectedCliente.value = null;
-        modalCobroOpen.value = false;
-
-        await cargarFolio();
-        await cargarClientes();
-        nextTick(() => productoInput.value?.focus());
-
-      } catch (e) {
-        console.error(e);
-        alert("❌ Error al guardar la venta: " + (e.response?.data?.message || e.message));
-      }
+      productos: productos.value.map(p => ({
+        producto_id: p.id,
+        cantidad: p.cantidad,
+        precio_unitario: p.precio,
+        subtotal: p.total
+      }))
     };
+
+    // Guardar venta y recibir PDF
+    const res = await api.post("/venta", payload, {
+      responseType: "blob"
+    });
+
+    // Crear PDF temporal
+    const pdfBlob = new Blob(
+      [res.data],
+      { type: "application/pdf" }
+    );
+
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    // Abrir el PDF
+    const ventana = window.open(pdfUrl, "_blank");
+
+    if (ventana) {
+      ventana.onload = () => {
+        ventana.print();
+      };
+    }
+
+    // Limpiar formulario
+    productos.value = [];
+    productoBusqueda.value = "";
+    codigoProducto.value = null;
+    cantidad.value = 1;
+    precioVenta.value = 0;
+    selectedCliente.value = null;
+    modalCobroOpen.value = false;
+
+    await cargarFolio();
+    await cargarClientes();
+
+    nextTick(() => {
+      productoInput.value?.focus();
+    });
+
+  } catch (e) {
+    console.error(e);
+    alert("❌ Error al guardar la venta.");
+  }
+};
 
 const clienteActual = computed(() => {
   return clientes.value.find(c => c.id === selectedCliente.value);

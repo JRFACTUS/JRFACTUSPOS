@@ -690,10 +690,12 @@ export default {
         usosCfdi.value =
           res.data?.usos_cfdi || [];
       } catch (e) {
-        console.error(
-          'Error al cargar catálogos SAT:',
-          e
-        );
+        error.value =
+          'Error al cargar catálogos SAT: ' +
+          (
+            e.response?.data?.message ||
+            e.message
+          );
       }
     };
 

@@ -273,7 +273,7 @@ export default {
                     actualizar: permisoActivo(datos?.actualizar)
                 };
             } catch (error) {
-                console.error("Error al obtener permisos de facturación:", error);
+               
 
                 permisos.value = {
                     listar: false,
@@ -329,7 +329,7 @@ export default {
                 return;
             }
 
-            console.log("FACTURA A CANCELAR:", factura);
+           
 
             facturaCancelar.value = factura;
             mostrarModalCancelar.value = true;
@@ -351,8 +351,7 @@ export default {
                 }, 300);
 
             } catch (error) {
-                console.error(error);
-
+              
                 Swal.fire({
                     icon: "error",
                     title: "Error",
@@ -383,11 +382,11 @@ export default {
                     return;
                 }
 
-                console.log("Payload cancelación:", {
+                /* console.log("Payload cancelación:", {
                     uuid: uuidCancelar,
                     motivo: payload.motivo,
                     folioSustituto: payload.folioSustituto || null
-                });
+                }); */
 
                 Swal.fire({
                     title: "Cancelando CFDI...",
@@ -412,7 +411,7 @@ export default {
                 await cargarFacturas();
 
             } catch (error) {
-                console.error(error);
+               
 
                 Swal.fire({
                     icon: "error",
@@ -465,7 +464,7 @@ export default {
                 });
 
             } catch (error) {
-                console.error(error);
+               
 
                 Swal.fire({
                     icon: "error",
@@ -506,7 +505,7 @@ export default {
                 }
 
             } catch (error) {
-                console.error(error);
+             
 
                 Swal.fire({
                     icon: "error",
@@ -547,7 +546,7 @@ export default {
                 window.URL.revokeObjectURL(url);
 
             } catch (error) {
-                console.error(error);
+             
 
                 Swal.fire({
                     icon: "error",
@@ -605,7 +604,7 @@ export default {
                 facturas.value = [cfdi];
 
             } catch (error) {
-                console.error(error);
+               
 
                 Swal.fire({
                     icon: "error",
@@ -633,7 +632,8 @@ export default {
                 }
 
             } catch (error) {
-                console.error("Error al cargar series:", error);
+                alert("Error al cargar series. Por favor, intenta nuevamente.");
+             
             }
         };
 

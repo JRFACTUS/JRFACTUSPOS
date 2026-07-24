@@ -1,13 +1,7 @@
 <template>
   <Teleport to="body">
-    <div
-  v-if="visible"
-  ref="modalOverlay"
-  class="modal-overlay"
-  tabindex="0"
-  @click.self="cerrarModal"
-  @keydown.enter.prevent="confirmarPago"
->
+    <div v-if="visible" ref="modalOverlay" class="modal-overlay" tabindex="0" @click.self="cerrarModal"
+      @keydown.enter.prevent="confirmarPago">
       <div class="modal-container horizontal">
         <div class="modal-header">
           <h5>Cobro de Venta</h5>
@@ -17,9 +11,9 @@
         <div class="modal-body">
           <!-- Total a pagar -->
           <div class="total-card">
-  <span class="total-label">TOTAL A PAGAR</span>
-  <h1 class="total-amount">{{ formatPrecio(total) }}</h1>
-</div>
+            <span class="total-label">TOTAL A PAGAR</span>
+            <h1 class="total-amount">{{ formatPrecio(total) }}</h1>
+          </div>
           <!-- Método de Pago -->
           <div class="form-group">
             <label>Método de Pago</label>
@@ -35,15 +29,10 @@
           <div v-if="metodoPago === 'Efectivo'" class="form-row">
             <div class="form-group">
               <label>Monto Efectivo</label>
-            <input
-              ref="efectivoInput"
-              type="number"
-              class="form-control"
-              v-model.number="efectivo"
-              min="0"
-              @keyup.enter.prevent="confirmarPago"
-            />            </div>
-                        <div class="form-group">
+              <input ref="efectivoInput" type="number" class="form-control" v-model.number="efectivo" min="0"
+                @keyup.enter.prevent="confirmarPago" />
+            </div>
+            <div class="form-group">
               <label>Cambio</label>
               <input type="text" class="form-control" :value="formatPrecio(cambio)" disabled />
             </div>
@@ -264,209 +253,209 @@ export default {
 </script>
 
 <style scoped>
-
-.modal-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(15,23,42,.75);
-  backdrop-filter:blur(5px);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:9999;
-  padding:20px;
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .75);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20px;
 }
 
-.modal-container.horizontal{
-  width:850px;
-  max-width:100%;
-  background:#ffffff;
-  border-radius:20px;
-  overflow:hidden;
+.modal-container.horizontal {
+  width: 850px;
+  max-width: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
   box-shadow:
-    0 25px 50px rgba(0,0,0,.25),
-    0 10px 20px rgba(0,0,0,.15);
+    0 25px 50px rgba(0, 0, 0, .25),
+    0 10px 20px rgba(0, 0, 0, .15);
 }
 
-.modal-header{
-  background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:#fff;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:18px 25px;
+.modal-header {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 25px;
 }
 
-.modal-header h5{
-  margin:0;
-  font-size:1.2rem;
-  font-weight:700;
+.modal-header h5 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
-.close-btn{
-  background:rgba(255,255,255,.15);
-  border:none;
-  width:40px;
-  height:40px;
-  border-radius:50%;
-  color:white;
-  font-size:1.4rem;
-  cursor:pointer;
-  transition:.3s;
+.close-btn {
+  background: rgba(255, 255, 255, .15);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: .3s;
 }
 
-.close-btn:hover{
-  background:rgba(255,255,255,.3);
-  transform:rotate(90deg);
+.close-btn:hover {
+  background: rgba(255, 255, 255, .3);
+  transform: rotate(90deg);
 }
 
-.modal-body{
-  padding:25px;
-  background:#f8fafc;
+.modal-body {
+  padding: 25px;
+  background: #f8fafc;
 }
 
-.form-row{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:15px;
-  margin-bottom:18px;
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 18px;
 }
 
-.form-group{
-  display:flex;
-  flex-direction:column;
+.form-group {
+  display: flex;
+  flex-direction: column;
 }
 
-.form-group label{
-  font-size:.9rem;
-  font-weight:600;
-  color:#334155;
-  margin-bottom:6px;
+.form-group label {
+  font-size: .9rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
 }
 
-.form-control{
-  height:48px;
-  border:2px solid #e2e8f0;
-  border-radius:12px;
-  padding:0 15px;
-  font-size:.95rem;
-  transition:.25s;
-  background:white;
+.form-control {
+  height: 48px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0 15px;
+  font-size: .95rem;
+  transition: .25s;
+  background: white;
 }
 
-.form-control:focus{
-  outline:none;
-  border-color:#2563eb;
-  box-shadow:0 0 0 4px rgba(37,99,235,.12);
+.form-control:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
 }
 
-.form-control:disabled{
-  background:#f1f5f9;
-  font-weight:700;
-  color:#0f172a;
+.form-control:disabled {
+  background: #f1f5f9;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-select.form-control{
-  cursor:pointer;
+select.form-control {
+  cursor: pointer;
 }
 
-.modal-footer{
-  background:white;
-  padding:20px 25px;
-  border-top:1px solid #e2e8f0;
-  display:flex;
-  justify-content:flex-end;
-  gap:12px;
+.modal-footer {
+  background: white;
+  padding: 20px 25px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
-.btn-primary{
-  border:none;
-  border-radius:12px;
-  padding:12px 22px;
-  font-weight:600;
-  background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:white;
-  cursor:pointer;
-  transition:.3s;
+.btn-primary {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  cursor: pointer;
+  transition: .3s;
 }
 
-.btn-primary:hover{
-  transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(37,99,235,.35);
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, .35);
 }
 
-.btn-primary:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-  transform:none;
+.btn-primary:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.btn-secondary{
-  border:none;
-  border-radius:12px;
-  padding:12px 22px;
-  font-weight:600;
-  background:#e2e8f0;
-  color:#334155;
-  cursor:pointer;
-  transition:.3s;
+.btn-secondary {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: #334155;
+  cursor: pointer;
+  transition: .3s;
 }
 
-.btn-secondary:hover{
-  background:#cbd5e1;
+.btn-secondary:hover {
+  background: #cbd5e1;
 }
 
-.text-danger{
-  background:#fee2e2;
-  color:#dc2626;
-  padding:12px;
-  border-radius:10px;
-  font-weight:600;
-  margin-top:10px;
+.text-danger {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-top: 10px;
 }
 
-@media(max-width:768px){
+@media(max-width:768px) {
 
-  .modal-container.horizontal{
-    width:100%;
+  .modal-container.horizontal {
+    width: 100%;
   }
 
-  .modal-body{
-    padding:18px;
+  .modal-body {
+    padding: 18px;
   }
 
-  .modal-footer{
-    flex-direction:column;
+  .modal-footer {
+    flex-direction: column;
   }
 
   .btn-primary,
-  .btn-secondary{
-    width:100%;
+  .btn-secondary {
+    width: 100%;
   }
 
 }
-.total-card{
-  background:linear-gradient(135deg,#15803d,#22c55e);
-  border-radius:18px;
-  padding:25px;
-  text-align:center;
-  margin-bottom:20px;
-  color:#fff;
-  box-shadow:0 10px 25px rgba(37,99,235,.25);
+
+.total-card {
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  border-radius: 18px;
+  padding: 25px;
+  text-align: center;
+  margin-bottom: 20px;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, .25);
 }
 
-.total-label{
-  display:block;
-  font-size:13px;
-  font-weight:600;
-  letter-spacing:2px;
-  opacity:.9;
+.total-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  opacity: .9;
 }
 
-.total-amount{
-  margin:10px 0 0;
-  font-size:2.5rem;
-  font-weight:800;
-  line-height:1;
+.total-amount {
+  margin: 10px 0 0;
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
 }
 </style>

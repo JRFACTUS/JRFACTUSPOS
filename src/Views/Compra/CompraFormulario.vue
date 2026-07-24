@@ -954,11 +954,7 @@ export default {
 
         await cargarFolio();
       } catch (e) {
-        console.error(e);
-
-        error.value =
-          e.response?.data?.message ||
-          "Error al guardar compra";
+        
 
         alert(error.value);
       } finally {

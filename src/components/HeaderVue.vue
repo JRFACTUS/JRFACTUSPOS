@@ -121,7 +121,7 @@ export default {
         empresa.value = response.data.data;
 
       } catch (error) {
-        console.error("Error cargando empresa:", error);
+        alert("Error al cargar la información de la empresa. Por favor, intenta nuevamente.");
       }
     };
 
@@ -183,7 +183,7 @@ export default {
         }, 1200);
 
       } catch (error) {
-        console.error(error);
+        alert("Error al cerrar sesión. Por favor, intenta nuevamente.");
 
         localStorage.removeItem("token");
         localStorage.removeItem("user");

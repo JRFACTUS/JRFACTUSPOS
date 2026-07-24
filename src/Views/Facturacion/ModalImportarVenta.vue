@@ -192,21 +192,19 @@ export default {
   try {
     const res = await api.get("/venta");
 
-    console.log("Respuesta del API:", res.data);
 
     if (res.data && Array.isArray(res.data.ventas)) {
       ventas.value = res.data.ventas;
     } else if (Array.isArray(res.data)) {
       ventas.value = res.data;
     } else {
-      console.warn("Formato inesperado:", res.data);
+      alert("Error al cargar ventas. Por favor, intenta nuevamente.");
       ventas.value = [];
     }
 
-    console.log("Ventas:", ventas.value);
 
   } catch (error) {
-    console.error("Error al cargar ventas:", error.response?.data || error);
+    alert("Error al cargar ventas. Por favor, intenta nuevamente.");
     ventas.value = [];
   } finally {
     cargando.value = false;

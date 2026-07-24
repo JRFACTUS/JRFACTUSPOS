@@ -459,7 +459,7 @@ export default {
       }
     };
 
-    const confirmarCobro = async (pagos) => {
+  const confirmarCobro = async (pagos) => {
   if (!props.usuario) return alert("Debes iniciar sesión.");
 
   if (!selectedCliente.value || !productos.value.length) {
@@ -512,6 +512,11 @@ export default {
       };
     }
 
+    // Liberar la URL temporal después de abrir el PDF
+    setTimeout(() => {
+      URL.revokeObjectURL(pdfUrl);
+    }, 1000);
+
     // Limpiar formulario
     productos.value = [];
     productoBusqueda.value = "";
@@ -529,7 +534,11 @@ export default {
     });
 
   } catch (e) {
-    console.error(e);
+
+    if (import.meta.env.DEV) {
+      console.error(e);
+    }
+
     alert("❌ Error al guardar la venta.");
   }
 };

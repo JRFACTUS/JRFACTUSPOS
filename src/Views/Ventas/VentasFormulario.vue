@@ -459,7 +459,7 @@ export default {
       }
     };
 
-  const confirmarCobro = async (pagos) => {
+   const confirmarCobro = async (pagos) => {
   if (!props.usuario) return alert("Debes iniciar sesión.");
 
   if (!selectedCliente.value || !productos.value.length) {
@@ -467,6 +467,25 @@ export default {
   }
 
   try {
+
+    // Revisar stock actual de cada producto
+    for (const producto of productos.value) {
+
+      const resStock = await api.get(`/productos/${producto.id}`);
+
+      const stockDisponible = Number(resStock.data.stock) || 0;
+      const cantidadSolicitada = Number(producto.cantidad) || 0;
+
+      if (stockDisponible < cantidadSolicitada) {
+        return alert(
+          `❌ Stock insuficiente.\n\n` +
+          `Producto: ${producto.nombre}\n` +
+          `Disponible: ${stockDisponible}\n` +
+          `Solicitado: ${cantidadSolicitada}`
+        );
+      }
+    }
+
     const total = productos.value.reduce(
       (acc, p) => acc + (p.cantidad * p.precio),
       0
@@ -490,12 +509,10 @@ export default {
       }))
     };
 
-    // Guardar venta y recibir PDF
     const res = await api.post("/venta", payload, {
       responseType: "blob"
     });
 
-    // Crear PDF temporal
     const pdfBlob = new Blob(
       [res.data],
       { type: "application/pdf" }
@@ -503,7 +520,6 @@ export default {
 
     const pdfUrl = URL.createObjectURL(pdfBlob);
 
-    // Abrir el PDF
     const ventana = window.open(pdfUrl, "_blank");
 
     if (ventana) {
@@ -512,12 +528,10 @@ export default {
       };
     }
 
-    // Liberar la URL temporal después de abrir el PDF
     setTimeout(() => {
       URL.revokeObjectURL(pdfUrl);
     }, 1000);
 
-    // Limpiar formulario
     productos.value = [];
     productoBusqueda.value = "";
     codigoProducto.value = null;
@@ -542,7 +556,6 @@ export default {
     alert("❌ Error al guardar la venta.");
   }
 };
-
 const clienteActual = computed(() => {
   return clientes.value.find(c => c.id === selectedCliente.value);
 });
